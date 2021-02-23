@@ -209,6 +209,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
 
         # Non-UGent users who have quota in Gent, e.g., in a VO, should not have these set
         if self.person.institute['name'] == self.host_institute:
+            # next(iter(a_list), None) will return the first item of a_list if the list is non-empty, other None
             self._cache['quota']['home'] = next(iter([q.hard for q in institute_quota
                                                       if user_proposition(q, HOME_KEY)]), None)
             self._cache['quota']['data'] = next(iter([q.hard for q in institute_quota
