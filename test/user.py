@@ -472,11 +472,17 @@ class VscTier2AccountpageUserTest(TestCase):
                 accountpageuser.user_data_quota,
                 [q['hard'] for q in quota if q['storage']['name'] == 'VSC_DATA' and q['fileset'] == fileset][0]
             )
+            self.assertEqual(
+                [(q.fileset, q.hard, q.storage['name']) for q in accountpageuser.user_scratch_quota],
+                [(q['fileset'], q['hard'], q['storage']['name']) for q in quota
+                    if q['storage']['storage_type'] == 'scratch' and q['fileset'] == fileset]
+            )
 
         # check if no home or data quota are set
         accountpageuser = set_up_accountpageuser(test_account_3, test_quota_3, BRUSSEL)
         self.assertEqual(accountpageuser.user_home_quota, None)
         self.assertEqual(accountpageuser.user_data_quota, None)
+        self.assertNotEqual(accountpageuser.user_scratch_quota, None)
 
 
 class UserDeploymentTest(TestCase):
