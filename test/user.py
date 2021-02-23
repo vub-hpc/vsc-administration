@@ -29,8 +29,7 @@ import vsc.config.base as config
 
 from vsc.accountpage.wrappers import mkVscAccount, mkVscHomeOnScratch, mkUserGroup, mkGroup
 from vsc.accountpage.wrappers import mkVscAccountPubkey
-from vsc.config.base import VSC_DATA, VSC_HOME, VSC_SCRATCH_PHANPY, VSC_SCRATCH_DELCATTY, GENT
-from vsc.config.base import VSC_SCRATCH_KYUKON, BRUSSEL, VSC_PRODUCTION_SCRATCH
+from vsc.config.base import VSC_DATA, VSC_HOME, GENT, BRUSSEL, VSC_PRODUCTION_SCRATCH
 from vsc.install.testing import TestCase
 
 # monkey patch location of storage configuration file to included test config
@@ -331,6 +330,20 @@ test_quota_2 = [
     },
 ]
 
+# no quota on home nor data, only scratch
+test_quota_3 = [
+    {
+        u'fileset': u'vsc100',
+        u'hard': 104857600,
+        u'storage': {
+            u'institute': u'brussel',
+            u'name': u'VSC_SCRATCH_THEIA',
+            u'storage_type': u'scratch'
+        },
+        u'user': u'vsc10001'
+    },
+]
+
 
 class VscAccountPageUserTest(TestCase):
     """
@@ -431,19 +444,25 @@ class VscTier2AccountpageUserTest(TestCase):
 
     def test_init_quota(self):
 
-        tests = [(test_account_1, test_quota_1, GENT, 'vsc400'), (test_account_3, test_quota_2, BRUSSEL, 'vsc100')]
+        tests = [
+            (test_account_1, test_quota_1, GENT, 'vsc400'),
+            (test_account_3, test_quota_2, BRUSSEL, 'vsc100'),
+        ]
 
-        for account, quota, site, fileset in tests:
+        def set_up_accountpageuser(account, quota, site):
             mock_client = mock.MagicMock()
             test_account = mkVscAccount(account)
             mock_client.account[test_account.vsc_id].quota.get.return_value = (200, quota)
 
-            accountpageuser = user.VscTier2AccountpageUser(
+            return user.VscTier2AccountpageUser(
                 test_account.vsc_id,
                 storage=config.VscStorage(),
                 rest_client=mock_client,
                 account=test_account,
                 host_institute=site)
+
+        for account, quota, site, fileset in tests:
+            accountpageuser = set_up_accountpageuser(account, quota, site)
 
             self.assertEqual(
                 accountpageuser.user_home_quota,
@@ -453,6 +472,11 @@ class VscTier2AccountpageUserTest(TestCase):
                 accountpageuser.user_data_quota,
                 [q['hard'] for q in quota if q['storage']['name'] == 'VSC_DATA' and q['fileset'] == fileset][0]
             )
+
+        # check if no home or data quota are set
+        accountpageuser = set_up_accountpageuser(test_account_3, test_quota_3, BRUSSEL)
+        self.assertEqual(accountpageuser.user_home_quota, None)
+        self.assertEqual(accountpageuser.user_data_quota, None)
 
 
 class UserDeploymentTest(TestCase):
