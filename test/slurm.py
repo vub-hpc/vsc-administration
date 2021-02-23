@@ -30,8 +30,8 @@ from vsc.administration.slurm.sync import SyncTypes, SlurmAccount, SlurmUser
 VO = namedtuple("VO", ["vsc_id", "institute"])
 
 
-class SlurmSyncTest(TestCase):
-    """Test for the slurm account sync."""
+class SlurmSyncTestGent(TestCase):
+    """Test for the slurm account sync in Gent"""
 
     def test_slurm_vo_accounts(self):
         """Test that the commands to create accounts are correctly generated."""
@@ -45,7 +45,7 @@ class SlurmSyncTest(TestCase):
             VO(vsc_id="gvo00018", institute={"name": "gent"}),
         ]
 
-        commands = slurm_vo_accounts(vos, [], ["mycluster"])
+        commands = slurm_vo_accounts(vos, [], ["mycluster"], 'gent')
 
         self.assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add account gvo00001 Parent=gent Organization=ugent Cluster=mycluster"),
@@ -120,3 +120,27 @@ class SlurmSyncTest(TestCase):
             SlurmUser(User='account2', Def_Acct='vo1', Admin='None', Cluster='banette', Account='vo1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
             SlurmUser(User='account3', Def_Acct='vo2', Admin='None', Cluster='banette', Account='vo2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
         ]))
+
+
+class SlurmSyncTestBrussel(TestCase):
+    """Test for the slurm account sync in Brussel."""
+
+    def test_slurm_vo_accounts(self):
+        """Test that the commands to create accounts are correctly generated."""
+
+        vos = [
+            VO(vsc_id="bvo00001", institute={"name": "brussel"}),
+            VO(vsc_id="bvo00002", institute={"name": "brussel"}),
+            VO(vsc_id="bvo00003", institute={"name": "brussel"}),
+            VO(vsc_id="bvo00004", institute={"name": "brussel"}),
+            VO(vsc_id="bvo00005", institute={"name": "brussel"}),
+            VO(vsc_id="bvo00006", institute={"name": "brussel"}),
+        ]
+
+        commands = slurm_vo_accounts(vos, [], ["mycluster"], 'brussel')
+
+        self.assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
+            shlex.split("/usr/bin/sacctmgr -i add account bvo00005 Parent=brussel Organization=vub Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i add account bvo00006 Parent=brussel Organization=vub Cluster=mycluster")
+        ]])
+

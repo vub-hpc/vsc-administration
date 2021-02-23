@@ -48,6 +48,7 @@ test_account_1 = {
         u'institute': {u'name': u'gent'},
         u'institute_login': u'foobar',
         u'institute_affiliation': u'staff',
+        u'realeppn': u'foobar@ugent.be',
     },
     u'research_field': [u'Bollocks', u'Pluto'],
     u'scratch_directory': u'/user/scratch/gent/vsc400/vsc40075',
@@ -57,6 +58,7 @@ test_account_1 = {
     u'expiry_date': u'2032-01-01',
     u'home_on_scratch': False,
     u'force_active': False,
+    u"isactive": True,
 }
 
 test_account_2 = {
@@ -71,6 +73,7 @@ test_account_2 = {
         u'institute': {u'name': u'gent'},
         u'institute_login': u'x_admin',
         u'institute_affiliation': u'staff',
+        u'realeppn': u'x_admin@ugent.be',
     },
     u'research_field': [u'Bollocks', u'Pluto'],
     u'scratch_directory': u'/user/scratch/gent/vsc400/vsc40075',
@@ -80,6 +83,7 @@ test_account_2 = {
     u'expiry_date': u'2034-01-01',
     u'home_on_scratch': False,
     u'force_active': False,
+    u"isactive": True,
 }
 
 test_account_3 = {
@@ -94,6 +98,7 @@ test_account_3 = {
         u'institute': {u'name': u'brussel'},
         u'institute_login': u'fooby',
         u'institute_affiliation': u'staff',
+        u'realeppn': u'fooby@vub.ac.be',
     },
     u'research_field': [u'Dinges', u'Pluto'],
     u'scratch_directory': u'/scratch/brussel/vsc100/vsc10001',
@@ -103,6 +108,7 @@ test_account_3 = {
     u'expiry_date': u'2030-01-01',
     u'home_on_scratch': False,
     u'force_active': False,
+    u"isactive": True,
 }
 
 test_account_4 = {
@@ -117,6 +123,7 @@ test_account_4 = {
         u'institute': {u'name': u'brussel'},
         u'institute_login': u'fooby',
         u'institute_affiliation': u'staff',
+        u'realeppn': u'fooby@vub.ac.be',
     },
     u'research_field': [u'Dinges', u'Pluto'],
     u'scratch_directory': u'/scratch/brussel/vsc100/vsc10001',
@@ -126,6 +133,7 @@ test_account_4 = {
     u'expiry_date': u'2030-01-01',
     u'home_on_scratch': False,
     u'force_active': False,
+    u"isactive": False,
 }
 
 test_usergroup_1 = {
@@ -204,6 +212,7 @@ test_hos_1 = [
                 },
                 "institute_login": "ageorges",
                 "institute_affiliation": "staff",
+                u'realeppn': u'ageorges@ugent.be',
             },
             u'home_on_scratch': False,
             u'force_active': False,
