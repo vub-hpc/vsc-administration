@@ -80,7 +80,6 @@ def main():
             None,
         ),
         'start_timestamp': ('Timestamp to start the sync from', str, 'store', None),
-        'institute': ('The name of the local institute for which to sync', str, 'store', GENT),
     }
 
     opts = ExtendedSimpleOption(options)
@@ -113,7 +112,7 @@ def main():
         sacctmgr_commands += slurm_institute_accounts(slurm_account_info, clusters, host_institute)
 
         # All users belong to a VO, so fetching the VOs is necessary/
-        account_page_vos = [mkVo(v) for v in client.vo.institute[opts.options.institute].get()[1]]
+        account_page_vos = [mkVo(v) for v in client.vo.institute[opts.options.host_institute].get()[1]]
 
         # The VOs do not track active state of users, so we need to fetch all accounts as well
         active_accounts = set([a["vsc_id"] for a in client.account.get()[1] if a["isactive"]])
