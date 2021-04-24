@@ -134,7 +134,7 @@ def get_slurm_acct_info(info_type):
     return info
 
 
-def create_add_account_command(account, parent, organisation, cluster):
+def create_add_account_command(account, parent, organisation, cluster, fairshare):
     """
     Creates the command to add the given account.
 
@@ -154,6 +154,7 @@ def create_add_account_command(account, parent, organisation, cluster):
         "Parent={0}".format(parent or "root"),
         "Organization={0}".format(SLURM_ORGANISATIONS[organisation]),
         "Cluster={0}".format(cluster),
+        "Fairshare={0}".format(fairshare),
     ]
     logging.debug(
         "Adding command to add account %s with Parent=%s Cluster=%s Organization=%s",
@@ -306,7 +307,8 @@ def slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_insti
                     account=vo.vsc_id,
                     parent=vo.institute['name'],
                     cluster=cluster,
-                    organisation=vo.institute['name']
+                    organisation=vo.institute['name'],
+                    fairshare=vo.fairshare,
                 ))
 
             # create update commands for VOs with a changed fairshare
