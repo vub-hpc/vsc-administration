@@ -165,6 +165,24 @@ def create_add_account_command(account, parent, organisation, cluster):
 
     return CREATE_ACCOUNT_COMMAND
 
+def create_change_account_fairshare_command(account, cluster, fairshare):
+    CHANGE_ACCOUNT_FAIRSHARE_COMMAND = [
+        SLURM_SACCT_MGR,
+        "-i",
+        "modify",
+        "account",
+        "name={0}".format(account),
+        "cluster={0}".format(cluster),
+        "set fairshare={0}".format(fairshare),
+    ]
+    logging.debug(
+        "Adding command to change fairshare for account %s on cluster %s to %d",
+        account,
+        cluster,
+        fairshare,
+    )
+
+    return CHANGE_ACCOUNT_FAIRSHARE_COMMAND
 
 def create_add_user_command(user, vo_id, cluster):
     """
@@ -274,12 +292,15 @@ def slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_insti
     """
     commands = []
     for cluster in clusters:
-        cluster_accounts = [acct.Account for acct in slurm_account_info if acct and acct.Cluster == cluster]
+        cluster_accounts = dict([(acct.Account, int(acct.Share)) for acct in slurm_account_info if acct and acct.Cluster == cluster])
 
         for vo in account_page_vos:
+
+            # skip the "default" VOs for our own institute
             if vo.vsc_id in INSTITUTE_VOS_BY_INSTITUTE[host_institute].values():
                 continue
 
+            # create a new account for a VO that does not already have an account
             if vo.vsc_id not in cluster_accounts:
                 commands.append(create_add_account_command(
                     account=vo.vsc_id,
@@ -287,6 +308,16 @@ def slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_insti
                     cluster=cluster,
                     organisation=vo.institute['name']
                 ))
+
+            # create update commands for VOs with a changed fairshare
+            elif int(vo.fairshare) != cluster_accounts[vo.vsc_id]:
+                commands.append(create_change_account_fairshare_command(
+                    account=vo.vsc_id,
+                    cluster=cluster,
+                    fairshare=vo.fairshare,
+                ))
+
+            # TODO: create removal commands when VOs go inactive
 
     return commands
 

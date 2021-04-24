@@ -93,7 +93,6 @@ def main():
 
     try:
         client = AccountpageClient(token=opts.options.access_token, url=opts.options.account_page_url + "/api/")
-
         host_institute = opts.options.host_institute
 
         slurm_account_info = get_slurm_acct_info(SyncTypes.accounts)
