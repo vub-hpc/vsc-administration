@@ -41,7 +41,7 @@ if sys.version_info < (3, 0):
     install_requires.append('enum34')
 
 PACKAGE = {
-    'version': '2.4.5',
+    'version': '2.5.0',
     'author': [ag, jt],
     'maintainer': [ag, jt],
     'tests_require': ['mock'],
