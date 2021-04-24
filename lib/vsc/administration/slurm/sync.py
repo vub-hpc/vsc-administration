@@ -276,11 +276,11 @@ def slurm_institute_accounts(slurm_account_info, clusters, host_institute):
         for (inst, vo) in INSTITUTE_VOS_BY_INSTITUTE[host_institute].items():
             if inst not in cluster_accounts:
                 commands.append(
-                    create_add_account_command(account=inst, parent=None, cluster=cluster, organisation=inst)
+                    create_add_account_command(account=inst, parent=None, cluster=cluster, organisation=inst, fairshare=500)
                 )
             if vo not in cluster_accounts:
                 commands.append(
-                    create_add_account_command(account=vo, parent=inst, cluster=cluster, organisation=inst)
+                    create_add_account_command(account=vo, parent=inst, cluster=cluster, organisation=inst, fairshare=500)
                 )
 
     return commands
