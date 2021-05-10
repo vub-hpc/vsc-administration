@@ -25,7 +25,7 @@ from vsc.install import shared_setup
 from vsc.install.shared_setup import ag, jt
 
 install_requires = [
-    'vsc-accountpage-clients >= 2.0.0',
+    'vsc-accountpage-clients >= 2.1.6',
     'vsc-base >= 3.0.6',
     'vsc-config >= 3.4.2',
     'vsc-filesystems >= 1.0.1',
