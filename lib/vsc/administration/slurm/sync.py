@@ -276,11 +276,15 @@ def slurm_institute_accounts(slurm_account_info, clusters, host_institute):
         for (inst, vo) in INSTITUTE_VOS_BY_INSTITUTE[host_institute].items():
             if inst not in cluster_accounts:
                 commands.append(
-                    create_add_account_command(account=inst, parent=None, cluster=cluster, organisation=inst, fairshare=500)
+                    create_add_account_command(
+                        account=inst, parent=None, cluster=cluster, organisation=inst, fairshare=500
+                    )
                 )
             if vo not in cluster_accounts:
                 commands.append(
-                    create_add_account_command(account=vo, parent=inst, cluster=cluster, organisation=inst, fairshare=500)
+                    create_add_account_command(
+                        account=vo, parent=inst, cluster=cluster, organisation=inst, fairshare=500
+                    )
                 )
 
     return commands
@@ -293,7 +297,11 @@ def slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_insti
     """
     commands = []
     for cluster in clusters:
-        cluster_accounts = dict([(acct.Account, int(acct.Share)) for acct in slurm_account_info if acct and acct.Cluster == cluster])
+        cluster_accounts = dict([
+            (acct.Account, int(acct.Share))
+            for acct in slurm_account_info
+            if acct and acct.Cluster == cluster
+        ])
 
         for vo in account_page_vos:
 

@@ -27,7 +27,7 @@ from vsc.administration.slurm.sync import slurm_vo_accounts, slurm_user_accounts
 from vsc.administration.slurm.sync import SyncTypes, SlurmAccount, SlurmUser
 
 
-VO = namedtuple("VO", ["vsc_id", "institute"])
+VO = namedtuple("VO", ["vsc_id", "institute", "fairshare"])
 
 
 class SlurmSyncTestGent(TestCase):
@@ -37,26 +37,26 @@ class SlurmSyncTestGent(TestCase):
         """Test that the commands to create accounts are correctly generated."""
 
         vos = [
-            VO(vsc_id="gvo00001", institute={"name": "gent"}),
-            VO(vsc_id="gvo00002", institute={"name": "gent"}),
-            VO(vsc_id="gvo00012", institute={"name": "gent"}),
-            VO(vsc_id="gvo00016", institute={"name": "gent"}),
-            VO(vsc_id="gvo00017", institute={"name": "gent"}),
-            VO(vsc_id="gvo00018", institute={"name": "gent"}),
+            VO(vsc_id="gvo00001", institute={"name": "gent"}, fairshare=10),
+            VO(vsc_id="gvo00002", institute={"name": "gent"}, fairshare=20),
+            VO(vsc_id="gvo00012", institute={"name": "gent"}, fairshare=100),
+            VO(vsc_id="gvo00016", institute={"name": "gent"}, fairshare=10),
+            VO(vsc_id="gvo00017", institute={"name": "gent"}, fairshare=10),
+            VO(vsc_id="gvo00018", institute={"name": "gent"}, fairshare=10),
         ]
 
         commands = slurm_vo_accounts(vos, [], ["mycluster"], 'gent')
 
         self.assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
-            shlex.split("/usr/bin/sacctmgr -i add account gvo00001 Parent=gent Organization=ugent Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i add account gvo00002 Parent=gent Organization=ugent Cluster=mycluster")
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00001 Parent=gent Organization=ugent Cluster=mycluster Fairshare=10"),
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00002 Parent=gent Organization=ugent Cluster=mycluster Fairshare=20")
         ]])
 
     def test_slurm_user_accounts(self):
         """Test that the commands to create, change and remove users are correctly generated."""
         vo_members = {
-            "vo1": (set(["user1", "user2", "user3"]), VO(vsc_id="vo1", institute={"name": "gent"})),
-            "vo2": (set(["user4", "user5", "user6"]), VO(vsc_id="vo2", institute={"name": "gent"})),
+            "vo1": (set(["user1", "user2", "user3"]), VO(vsc_id="vo1", institute={"name": "gent"}, fairshare=10)),
+            "vo2": (set(["user4", "user5", "user6"]), VO(vsc_id="vo2", institute={"name": "gent"}, fairshare=11)),
         }
 
         active_accounts = set(["user1", "user3", "user4", "user5", "user6", "user7"])
@@ -129,18 +129,18 @@ class SlurmSyncTestBrussel(TestCase):
         """Test that the commands to create accounts are correctly generated."""
 
         vos = [
-            VO(vsc_id="bvo00001", institute={"name": "brussel"}),
-            VO(vsc_id="bvo00002", institute={"name": "brussel"}),
-            VO(vsc_id="bvo00003", institute={"name": "brussel"}),
-            VO(vsc_id="bvo00004", institute={"name": "brussel"}),
-            VO(vsc_id="bvo00005", institute={"name": "brussel"}),
-            VO(vsc_id="bvo00006", institute={"name": "brussel"}),
+            VO(vsc_id="bvo00001", institute={"name": "brussel"}, fairshare=18),
+            VO(vsc_id="bvo00002", institute={"name": "brussel"}, fairshare=17),
+            VO(vsc_id="bvo00003", institute={"name": "brussel"}, fairshare=16),
+            VO(vsc_id="bvo00004", institute={"name": "brussel"}, fairshare=15),
+            VO(vsc_id="bvo00005", institute={"name": "brussel"}, fairshare=14),
+            VO(vsc_id="bvo00006", institute={"name": "brussel"}, fairshare=13),
         ]
 
         commands = slurm_vo_accounts(vos, [], ["mycluster"], 'brussel')
 
         self.assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
-            shlex.split("/usr/bin/sacctmgr -i add account bvo00005 Parent=brussel Organization=vub Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i add account bvo00006 Parent=brussel Organization=vub Cluster=mycluster")
+            shlex.split("/usr/bin/sacctmgr -i add account bvo00005 Parent=brussel Organization=vub Cluster=mycluster Fairshare=14"),
+            shlex.split("/usr/bin/sacctmgr -i add account bvo00006 Parent=brussel Organization=vub Cluster=mycluster Fairshare=13")
         ]])
 
