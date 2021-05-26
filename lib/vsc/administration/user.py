@@ -37,7 +37,6 @@ from vsc.config.base import (
 )
 from vsc.filesystem.gpfs import GpfsOperations
 from vsc.filesystem.posix import PosixOperations
-from vsc.utils import fancylogger
 from vsc.utils.py2vs3 import ensure_ascii_string
 
 # Cache for user instances

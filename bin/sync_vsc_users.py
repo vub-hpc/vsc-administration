@@ -103,8 +103,8 @@ def main():
         if opts.options.user:
             changed_accounts = client.account.institute[institute].modified[last_timestamp].get()[1]
 
-            logging.info("Found %d %s accounts that have changed in the accountpage since %s" %
-                        (len(changed_accounts), institute, last_timestamp))
+            logging.info("Found %d %s accounts that have changed in the accountpage since %s",
+                        len(changed_accounts), institute, last_timestamp)
 
             accounts = nub([u['vsc_id'] for u in changed_accounts])
 
@@ -145,10 +145,10 @@ def main():
             vos = sorted(set([v['vsc_id'] for v in changed_vos] +
                              [v['virtual_organisation'] for v in changed_vo_quota]))
 
-            logging.info("Found %d %s VOs that have changed in the accountpage since %s" %
-                        (len(changed_vos), institute, last_timestamp))
-            logging.info("Found %d %s VOs that have changed quota in the accountpage since %s" %
-                        (len(changed_vo_quota), institute, last_timestamp))
+            logging.info("Found %d %s VOs that have changed in the accountpage since %s",
+                        len(changed_vos), institute, last_timestamp)
+            logging.info("Found %d %s VOs that have changed quota in the accountpage since %s",
+                        len(changed_vo_quota), institute, last_timestamp)
             logging.debug("Found the following {institute} VOs: {vos}".format(institute=institute, vos=vos))
 
             for storage_name in opts.options.storage:
