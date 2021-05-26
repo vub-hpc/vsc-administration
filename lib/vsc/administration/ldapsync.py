@@ -75,9 +75,9 @@ class LdapSyncer(object):
                 try:
                     entry = VscLdapKlass(cn)
                     entry.add(ldap_attributes)
-                    logging.info("Added a new user %s to LDAP" % (cn,))
+                    logging.info("Added a new user %s to LDAP", cn)
                 except LDAPError:
-                    logging.warning("Could not add %s %s to LDAP" % (VscLdapKlass.__name__, cn,))
+                    logging.warning("Could not add %s %s to LDAP", VscLdapKlass.__name__, cn)
                     return ERROR
             return NEW
         else:
@@ -88,9 +88,9 @@ class LdapSyncer(object):
             if not dry_run:
                 try:
                     ldap_entries[0].modify_ldap(ldap_attributes)
-                    logging.info("Modified %s %s in LDAP" % (VscLdapKlass.__name__, cn,))
+                    logging.info("Modified %s %s in LDAP", VscLdapKlass.__name__, cn)
                 except LDAPError:
-                    logging.warning("Could not add %s %s to LDAP" % (VscLdapKlass.__name__, cn,))
+                    logging.warning("Could not add %s %s to LDAP", VscLdapKlass.__name__, cn)
                     return ERROR
             return UPDATED
 
@@ -109,9 +109,9 @@ class LdapSyncer(object):
             ERROR: set(),
         }
 
-        logging.info("Found %d modified accounts in the range %s until %s" % (len(sync_accounts),
+        logging.info("Found %d modified accounts in the range %s until %s", len(sync_accounts),
                      datetime.fromtimestamp(last).strftime("%Y%m%d%H%M%SZ"),
-                     self.now.strftime("%Y%m%d%H%M%SZ")))
+                     self.now.strftime("%Y%m%d%H%M%SZ"))
         logging.debug("Modified accounts: %s", [a.vsc_id for a in sync_accounts])
 
         for account in sync_accounts:
@@ -122,7 +122,7 @@ class LdapSyncer(object):
                 else:
                     usergroup = mkUserGroup(self.client.account[account.vsc_id].usergroup.get()[1])
             except HTTPError:
-                logging.error("No corresponding UserGroup for user %s" % (account.vsc_id,))
+                logging.error("No corresponding UserGroup for user %s", account.vsc_id)
                 continue
             gecos = ensure_ascii_string(account.person.gecos)
 
@@ -176,9 +176,9 @@ class LdapSyncer(object):
         """
         changed_groups = [mkGroup(a) for a in self.client.allgroups.modified[last].get()[1]]
 
-        logging.info("Found %d modified groups in the range %s until %s" % (len(changed_groups),
+        logging.info("Found %d modified groups in the range %s until %s", len(changed_groups),
                      datetime.fromtimestamp(last).strftime("%Y%m%d%H%M%SZ"),
-                     self.now.strftime("%Y%m%d%H%M%SZ")))
+                     self.now.strftime("%Y%m%d%H%M%SZ"))
         logging.debug("Modified groups: %s", [g.vsc_id for g in changed_groups])
         groups = {
             NEW: set(),
@@ -212,7 +212,8 @@ class LdapSyncer(object):
             except HTTPError as err:
                 # if a 404 occured, the group is not an VO, so we skip this. Otherwise something else went wrong.
                 if err.code != 404:
-                    logging.raiseException("Retrieval of group VO failed for unexpected reasons")
+                    logging.exception("Retrieval of group VO failed for unexpected reasons")
+                    raise Exception("Retrieval of group VO failed for unexpected reasons")
             else:
                 # Group is a VO
                 ldap_attributes['fairshare'] = ["%d" % (vo.fairshare,)]

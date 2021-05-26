@@ -47,8 +47,8 @@ class VscPostfixSync(Sync):
         active_emails = dict([("%s@vscentrum.be" % a.vsc_id, a.email) for a in active_accounts])
         inactive_emails = set(["%s@vscentrum.be" % a.vsc_id for a in inactive_accounts])
 
-        logging.debug("active emails: %s" % active_emails)
-        logging.debug("inactive emails: %s" % inactive_emails)
+        logging.debug("active emails: %s", active_emails)
+        logging.debug("inactive emails: %s", inactive_emails)
 
         address_map = dict()
         try:
@@ -64,7 +64,7 @@ class VscPostfixSync(Sync):
         txt = "\n".join(["%s %s" % kv for kv in address_map.items()] + [''])
 
         if dry_run:
-            logging.info("Dry run. File contents:\n%s" % txt)
+            logging.info("Dry run. File contents:\n%s", txt)
             print(txt)
         else:
             with open(self.options.postfix_canonical_map, 'w') as cm:

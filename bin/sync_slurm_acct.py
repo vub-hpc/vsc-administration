@@ -147,7 +147,7 @@ def main():
             logger.info("Dry run done")
 
     except Exception as err:
-        logging.exception("critical exception caught: %s" % (err))
+        logging.exception("critical exception caught: %s", err)
         opts.critical("Script failed in a horrible way")
         sys.exit(NAGIOS_EXIT_CRITICAL)
 

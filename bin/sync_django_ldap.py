@@ -94,7 +94,8 @@ def main():
                 os.setgid(child_gid)
                 os.setuid(child_uid)
             except (KeyError, OSError):
-                logger.raiseException("Could not drop privileges to user '%s':" % child_user)
+                logger.exception("Could not drop privileges to user '%s':", child_user)
+                raise Exception("Could not drop privileges to user '%s':" % child_user)
             else:
                 logging.info("Now running as user %s (uid: %s)", child_user, os.geteuid())
 
@@ -107,7 +108,7 @@ def main():
 
             altered_groups = syncer.sync_altered_groups(last, opts.options.dry_run)
 
-            logging.debug("Altered groups: %s" % altered_groups)
+            logging.debug("Altered groups: %s", altered_groups)
 
             if not altered_accounts[ERROR] \
                     and not altered_groups[ERROR]:
@@ -115,7 +116,7 @@ def main():
                 sys.exit(0)
             else:
                 logging.info("Child process exiting with status -1")
-                logging.warning("Error occured in %s" % (
+                logging.warning("Error occured in %s", (
                     ["%s: %s\n" % (k, v) for (k, v) in [
                         ("altered accounts", altered_accounts[ERROR]),
                         ("altered groups", altered_groups[ERROR]),
@@ -129,7 +130,7 @@ def main():
     else:
         # parent
         (_, result) = os.waitpid(parent_pid, 0)
-        logging.info("Child exited with exit code %d" % (result,))
+        logging.info("Child exited with exit code %d", result)
 
         if not result and not opts.options.dry_run:
             (_, ldap_timestamp) = convert_timestamp(start_time)
