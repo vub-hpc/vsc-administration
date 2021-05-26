@@ -29,7 +29,6 @@ from vsc.utils import fancylogger
 
 QUOTA_CONF_FILE = '/etc/quota_check.conf'
 
-log = fancylogger.getLogger('create_directory_trees_tier2_home_data')
 fancylogger.setLogLevelInfo()
 
 

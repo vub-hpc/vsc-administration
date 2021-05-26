@@ -48,7 +48,6 @@ NAGIOS_CHECK_INTERVAL_THRESHOLD = 15 * 60  # 15 minutes
 SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
 SYNC_VSC_USERS_LOGFILE = "/var/log/%s.log" % (NAGIOS_HEADER)
 
-logger = fancylogger.getLogger()
 fancylogger.logToScreen(True)
 fancylogger.setLogLevelInfo()
 
@@ -169,7 +168,7 @@ def main():
             (_, ldap_timestamp) = convert_timestamp(start_time)
             write_timestamp(SYNC_TIMESTAMP_FILENAME, ldap_timestamp)
     except Exception as err:
-        logger.exception("critical exception caught: %s" % (err))
+        logging.exception("critical exception caught: %s", err)
         opts.critical("Script failed in a horrible way")
         sys.exit(NAGIOS_EXIT_CRITICAL)
 
