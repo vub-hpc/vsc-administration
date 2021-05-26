@@ -41,7 +41,6 @@ NAGIOS_CHECK_INTERVAL_THRESHOLD = 15 * 60  # 15 minutes
 SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
 NONROOT_DEFAULT_USER = 'apache'
 
-logger = fancylogger.getLogger()
 fancylogger.setLogLevelInfo()
 fancylogger.logToScreen(True)
 
@@ -82,19 +81,17 @@ def main():
 
     if parent_pid == 0:
         try:
-            global logger
-            logger = fancylogger.getLogger(NAGIOS_HEADER)
 
             # drop privileges in the child
+            child_user = opts.options.user
             try:
-                child_user = opts.options.user
                 child_uid = pwd.getpwnam(child_user).pw_uid
                 child_gid = grp.getgrnam(child_user).gr_gid
                 os.setgroups([])
                 os.setgid(child_gid)
                 os.setuid(child_uid)
             except (KeyError, OSError):
-                logger.exception("Could not drop privileges to user '%s':", child_user)
+                logging.exception("Could not drop privileges to user '%s':", child_user)
                 raise Exception("Could not drop privileges to user '%s':" % child_user)
             else:
                 logging.info("Now running as user %s (uid: %s)", child_user, os.geteuid())
