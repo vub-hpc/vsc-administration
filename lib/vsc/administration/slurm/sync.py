@@ -21,7 +21,7 @@ from enum import Enum
 
 from vsc.accountpage.wrappers import mkNamedTupleInstance
 
-from vsc.config.base import ANTWERPEN, BRUSSEL, GENT, LEUVEN, INSTITUTE_VOS_BY_INSTITUTE
+from vsc.config.base import ANTWERPEN, BRUSSEL, GENT, LEUVEN, INSTITUTE_VOS_BY_INSTITUTE, INSTITUTE_FAIRSHARE
 from vsc.utils.missing import namedtuple_with_defaults
 from vsc.utils.run import asyncloop
 
@@ -265,7 +265,7 @@ def create_remove_user_command(user, cluster):
     return REMOVE_USER_COMMAND
 
 
-def slurm_institute_accounts(slurm_account_info, clusters, host_institute):
+def slurm_institute_accounts(slurm_account_info, clusters, host_institute, institute_vos):
     """Check for the presence of the institutes and their default VOs in the slurm account list.
 
     @returns: list of sacctmgr commands to add the accounts to the clusters if needed
@@ -274,16 +274,25 @@ def slurm_institute_accounts(slurm_account_info, clusters, host_institute):
     for cluster in clusters:
         cluster_accounts = [acct.Account for acct in slurm_account_info if acct and acct.Cluster == cluster]
         for (inst, vo) in INSTITUTE_VOS_BY_INSTITUTE[host_institute].items():
+
             if inst not in cluster_accounts:
                 commands.append(
                     create_add_account_command(
-                        account=inst, parent=None, cluster=cluster, organisation=inst, fairshare=500
+                        account=inst,
+                        parent=None,
+                        cluster=cluster,
+                        organisation=inst,
+                        fairshare=INSTITUTE_FAIRSHARE[host_institute][inst]
                     )
                 )
             if vo not in cluster_accounts:
                 commands.append(
                     create_add_account_command(
-                        account=vo, parent=inst, cluster=cluster, organisation=inst, fairshare=500
+                        account=vo,
+                        parent=inst,
+                        cluster=cluster,
+                        organisation=inst,
+                        fairshare=institute_vos[vo].fairshare # needs to come from the AP
                     )
                 )
 
