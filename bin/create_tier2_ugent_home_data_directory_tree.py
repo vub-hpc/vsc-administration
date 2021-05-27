@@ -29,8 +29,6 @@ from vsc.utils import fancylogger
 
 QUOTA_CONF_FILE = '/etc/quota_check.conf'
 
-fancylogger.setLogLevelInfo()
-
 
 def set_up_apps(gpfs, storage_settings, storage, filesystem_info, filesystem_name):
     """Set up the apps fileset."""

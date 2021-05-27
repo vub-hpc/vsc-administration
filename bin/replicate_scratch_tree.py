@@ -40,10 +40,6 @@ NAGIOS_CHECK_INTERVAL_THRESHOLD = 15 * 60  # 15 minutes
 SYNC_TIMESTAMP_FILENAME = "/var/run/%s.timestamp" % (NAGIOS_HEADER)
 
 
-fancylogger.logToScreen(True)
-fancylogger.setLogLevelInfo()
-
-
 def set_up_filesystem(
         gpfs,
         storage_settings,

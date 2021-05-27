@@ -48,9 +48,6 @@ NAGIOS_CHECK_INTERVAL_THRESHOLD = 15 * 60  # 15 minutes
 SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
 SYNC_VSC_USERS_LOGFILE = "/var/log/%s.log" % (NAGIOS_HEADER)
 
-fancylogger.logToScreen(True)
-fancylogger.setLogLevelInfo()
-
 STORAGE_USERS_LIMIT_WARNING = 1
 STORAGE_USERS_LIMIT_CRITICAL = 10
 STORAGE_QUOTA_LIMIT_WARNING = 1

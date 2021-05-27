@@ -41,9 +41,6 @@ NAGIOS_CHECK_INTERVAL_THRESHOLD = 15 * 60  # 15 minutes
 SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
 NONROOT_DEFAULT_USER = 'apache'
 
-fancylogger.setLogLevelInfo()
-fancylogger.logToScreen(True)
-
 
 def main():
 
