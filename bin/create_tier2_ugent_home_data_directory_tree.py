@@ -25,7 +25,6 @@ from vsc.utils.py2vs3 import configparser
 
 from vsc.filesystem.gpfs import GpfsOperations
 from vsc.config.base import VscStorage
-from vsc.utils import fancylogger
 
 QUOTA_CONF_FILE = '/etc/quota_check.conf'
 

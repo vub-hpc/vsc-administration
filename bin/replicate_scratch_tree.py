@@ -28,7 +28,6 @@ import sys
 
 from vsc.config.base import VscStorage
 from vsc.filesystem.gpfs import GpfsOperations
-from vsc.utils import fancylogger
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
 from vsc.utils.script_tools import ExtendedSimpleOption
 
