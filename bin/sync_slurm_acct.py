@@ -27,7 +27,7 @@ from vsc.accountpage.client import AccountpageClient
 from vsc.accountpage.wrappers import mkVo
 from vsc.administration.slurm.sync import get_slurm_acct_info, SyncTypes, SacctMgrException
 from vsc.administration.slurm.sync import slurm_institute_accounts, slurm_vo_accounts, slurm_user_accounts
-from vsc.config.base import GENT, VSC_SLURM_SYNC_CLUSTERS
+from vsc.config.base import GENT, VSC_SLURM_SYNC_CLUSTERS, INSTITUTE_VOS_BY_INSTITUTE
 from vsc.utils import fancylogger
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
 from vsc.utils.run import RunNoShell
@@ -107,11 +107,16 @@ def main():
             clusters = VSC_SLURM_SYNC_CLUSTERS[host_institute]
         sacctmgr_commands = []
 
-        # make sure the institutes and the default accounts (VOs) are there for each cluster
-        sacctmgr_commands += slurm_institute_accounts(slurm_account_info, clusters, host_institute)
-
         # All users belong to a VO, so fetching the VOs is necessary/
         account_page_vos = [mkVo(v) for v in client.vo.institute[opts.options.host_institute].get()[1]]
+
+        # make sure the institutes and the default accounts (VOs) are there for each cluster
+        institute_vos = dict([
+            (v.vsc_id, v)
+            for v in account_page_vos
+            if v.vsc_id in INSTITUTE_VOS_BY_INSTITUTE[host_institute].values()
+        ])
+        sacctmgr_commands += slurm_institute_accounts(slurm_account_info, clusters, host_institute, institute_vos)
 
         # The VOs do not track active state of users, so we need to fetch all accounts as well
         active_accounts = set([a["vsc_id"] for a in client.account.get()[1] if a["isactive"]])
