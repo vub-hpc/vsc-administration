@@ -145,7 +145,7 @@ def main():
             write_timestamp(SYNC_TIMESTAMP_FILENAME, ldap_timestamp)
             opts.epilogue("Accounts synced to slurm", stats)
         else:
-            logger.info("Dry run done")
+            logging.info("Dry run done")
 
     except Exception as err:
         logging.exception("critical exception caught: %s", err)
