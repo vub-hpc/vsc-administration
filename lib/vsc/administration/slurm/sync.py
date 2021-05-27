@@ -273,7 +273,7 @@ def slurm_institute_accounts(slurm_account_info, clusters, host_institute, insti
     commands = []
     for cluster in clusters:
         cluster_accounts = [acct.Account for acct in slurm_account_info if acct and acct.Cluster == cluster]
-        for (inst, vo) in INSTITUTE_VOS_BY_INSTITUTE[host_institute].items():
+        for (inst, vo) in sorted(list(INSTITUTE_VOS_BY_INSTITUTE[host_institute].items())):
 
             if inst not in cluster_accounts:
                 commands.append(

@@ -23,7 +23,10 @@ from collections import namedtuple
 
 from vsc.install.testing import TestCase
 
-from vsc.administration.slurm.sync import slurm_vo_accounts, slurm_user_accounts, parse_slurm_acct_dump
+from vsc.administration.slurm.sync import (
+    slurm_vo_accounts, slurm_user_accounts, parse_slurm_acct_dump,
+    slurm_institute_accounts
+)
 from vsc.administration.slurm.sync import SyncTypes, SlurmAccount, SlurmUser
 
 
@@ -50,6 +53,28 @@ class SlurmSyncTestGent(TestCase):
         self.assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add account gvo00001 Parent=gent Organization=ugent Cluster=mycluster Fairshare=10"),
             shlex.split("/usr/bin/sacctmgr -i add account gvo00002 Parent=gent Organization=ugent Cluster=mycluster Fairshare=20")
+        ]])
+
+    def test_slurm_institute_accounts(self):
+
+        institute_vos = dict([
+            ("gvo00012", VO(vsc_id="gvo00012", institute={"name": "gent"}, fairshare=100)),
+            ("gvo00016", VO(vsc_id="gvo00016", institute={"name": "brussel"}, fairshare=10)),
+            ("gvo00017", VO(vsc_id="gvo00017", institute={"name": "antwerpen"}, fairshare=30)),
+            ("gvo00018", VO(vsc_id="gvo00018", institute={"name": "leuven"}, fairshare=20)),
+        ])
+
+        commands = slurm_institute_accounts([], ["mycluster"], "gent", institute_vos)
+
+        self.assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
+            shlex.split("/usr/bin/sacctmgr -i add account antwerpen Parent=root Organization=uantwerpen Cluster=mycluster Fairshare=500"),
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00017 Parent=antwerpen Organization=uantwerpen Cluster=mycluster Fairshare=30"),
+            shlex.split("/usr/bin/sacctmgr -i add account brussel Parent=root Organization=vub Cluster=mycluster Fairshare=500"),
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00016 Parent=brussel Organization=vub Cluster=mycluster Fairshare=10"),
+            shlex.split("/usr/bin/sacctmgr -i add account gent Parent=root Organization=ugent Cluster=mycluster Fairshare=8500"),
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00012 Parent=gent Organization=ugent Cluster=mycluster Fairshare=100"),
+            shlex.split("/usr/bin/sacctmgr -i add account leuven Parent=root Organization=kuleuven Cluster=mycluster Fairshare=500"),
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00018 Parent=leuven Organization=kuleuven Cluster=mycluster Fairshare=20"),
         ]])
 
     def test_slurm_user_accounts(self):
