@@ -21,13 +21,13 @@ a temporary tree.
 """
 
 import grp
+import logging
 import os
 import pwd
 import sys
 
 from vsc.config.base import VscStorage
 from vsc.filesystem.gpfs import GpfsOperations
-from vsc.utils import fancylogger
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
 from vsc.utils.script_tools import ExtendedSimpleOption
 
@@ -37,11 +37,6 @@ NAGIOS_CHECK_INTERVAL_THRESHOLD = 15 * 60  # 15 minutes
 
 
 SYNC_TIMESTAMP_FILENAME = "/var/run/%s.timestamp" % (NAGIOS_HEADER)
-
-
-log = fancylogger.getLogger(__name__)
-fancylogger.logToScreen(True)
-fancylogger.setLogLevelInfo()
 
 
 def set_up_filesystem(
@@ -55,7 +50,7 @@ def set_up_filesystem(
     """Set up the filesets and directories such that user, vo directories and friends can be created."""
 
     # Create the basic gent fileset
-    log.info("Replicating up for storage %s", storage)
+    logging.info("Replicating up for storage %s", storage)
     fileset_name = storage_settings.path_templates[storage]['replica'][0]
     fileset_path = os.path.join(filesystem_info['defaultMountPoint'], fileset_name)
 
@@ -64,34 +59,34 @@ def set_up_filesystem(
         if not dry_run:
             gpfs.make_fileset(fileset_path, fileset_name)
             gpfs.chmod(fileset_path, 0o755)
-        log.info("Fileset %s created and linked at %s", fileset_name, fileset_path)
+        logging.info("Fileset %s created and linked at %s", fileset_name, fileset_path)
 
     # create directories up to vsc42000
     for group in range(0, 21):
 
         group_path = os.path.join(fileset_path, "vsc4%02d" % group)
         if not os.path.exists(group_path):
-            log.info("Path %s does not exist. Creating directory.", group_path)
+            logging.info("Path %s does not exist. Creating directory.", group_path)
             try:
                 if not dry_run:
                     os.mkdir(group_path)
                     os.chmod(group_path, 0o755)
             except (IOError, OSError) as err:
-                log.error("Problem creating dir %s [%s]", group_path, err)
+                logging.error("Problem creating dir %s [%s]", group_path, err)
 
         for user in range(0, 100):
             user_name = "vsc4%02d%02d" % (group, user)
             user_id = 2540000 + group * 100 + user
             user_path = os.path.join(group_path, user_name)
             if not os.path.exists(user_path):
-                log.info("Path %s does not exist. Creating directory.", user_path)
+                logging.info("Path %s does not exist. Creating directory.", user_path)
                 try:
                     if not dry_run:
                         os.mkdir(user_path)
                         os.chown(user_path, user_id, user_id)
                         os.chmod(user_path, 0o700)
                 except (IOError, OSError) as err:
-                    log.error("Problem creating dir %s", user_path)
+                    logging.error("Problem creating dir %s", user_path)
 
     if vo_support:
 
@@ -107,7 +102,7 @@ def set_up_filesystem(
             try:
                 vo_group = grp.getgrnam(vo_name)
             except Exception:
-                log.warning("Cannot find a group for VO %s", vo_name)
+                logging.warning("Cannot find a group for VO %s", vo_name)
                 continue
 
             vo_path = os.path.join(fileset_path, vo_name[:-2], vo_name)
@@ -117,23 +112,23 @@ def set_up_filesystem(
             for member_name in vo_members:
                 try:
                     vo_moderator = pwd.getpwnam(member_name)
-                    log.info("VO moderator is picked as %s", vo_moderator.pw_name)
+                    logging.info("VO moderator is picked as %s", vo_moderator.pw_name)
                     break
                 except KeyError as err:
                     continue
 
             if not vo_moderator:
-                log.error("Cannot find a moderator for VO %s", vo_name)
+                logging.error("Cannot find a moderator for VO %s", vo_name)
                 vo_moderator = pwd.getpwnam('nobody')
 
             if not os.path.exists(vo_path):
-                log.info("Path %s does not exist. Creating directory.", vo_path)
+                logging.info("Path %s does not exist. Creating directory.", vo_path)
                 try:
                     os.mkdir(vo_path)
                     os.chown(vo_path, vo_moderator.pw_uid, vo_group.gr_gid)
                     os.chmod(vo_path, 0o770)
                 except (IOError, OSError) as err:
-                    log.error("Problem creating dir %s" % (vo_path,))
+                    logging.error("Problem creating dir %s", vo_path)
 
             for member_name in vo_members:
 
@@ -144,13 +139,13 @@ def set_up_filesystem(
                     continue
 
                 if not os.path.exists(member_path):
-                    log.info("Path %s does not exist. Creating directory", member_path)
+                    logging.info("Path %s does not exist. Creating directory", member_path)
                     try:
                         os.mkdir(member_path)
                         os.chown(member_path, member.pw_uid, member.pw_gid)
                         os.chmod(member_path, 0o700)
                     except Exception:
-                        log.error("Cannot create dir %s", member_path)
+                        logging.error("Cannot create dir %s", member_path)
 
 
 def main():
@@ -184,7 +179,7 @@ def main():
                               dry_run=opts.options.dry_run)
 
     except Exception as err:
-        log.exception("critical exception caught: %s" % (err))
+        logging.exception("critical exception caught: %s", err)
         opts.critical("Script failed in a horrible way")
         sys.exit(NAGIOS_EXIT_CRITICAL)
 

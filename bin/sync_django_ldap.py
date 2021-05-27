@@ -31,7 +31,6 @@ from vsc.administration.ldapsync import LdapSyncer, ERROR
 
 from vsc.ldap.configuration import VscConfiguration
 from vsc.ldap.utils import LdapQuery
-from vsc.utils import fancylogger
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
 from vsc.utils.script_tools import ExtendedSimpleOption
 from vsc.utils.timestamp import convert_timestamp, write_timestamp, retrieve_timestamp_with_default
@@ -40,10 +39,6 @@ NAGIOS_HEADER = "sync_django_to_ldap"
 NAGIOS_CHECK_INTERVAL_THRESHOLD = 15 * 60  # 15 minutes
 SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
 NONROOT_DEFAULT_USER = 'apache'
-
-logger = fancylogger.getLogger()
-fancylogger.setLogLevelInfo()
-fancylogger.logToScreen(True)
 
 
 def main():
@@ -82,19 +77,18 @@ def main():
 
     if parent_pid == 0:
         try:
-            global logger
-            logger = fancylogger.getLogger(NAGIOS_HEADER)
 
             # drop privileges in the child
+            child_user = opts.options.user
             try:
-                child_user = opts.options.user
                 child_uid = pwd.getpwnam(child_user).pw_uid
                 child_gid = grp.getgrnam(child_user).gr_gid
                 os.setgroups([])
                 os.setgid(child_gid)
                 os.setuid(child_uid)
             except (KeyError, OSError):
-                logger.raiseException("Could not drop privileges to user '%s':" % child_user)
+                logging.exception("Could not drop privileges to user '%s':", child_user)
+                raise Exception("Could not drop privileges to user '%s':" % child_user)
             else:
                 logging.info("Now running as user %s (uid: %s)", child_user, os.geteuid())
 
@@ -107,7 +101,7 @@ def main():
 
             altered_groups = syncer.sync_altered_groups(last, opts.options.dry_run)
 
-            logging.debug("Altered groups: %s" % altered_groups)
+            logging.debug("Altered groups: %s", altered_groups)
 
             if not altered_accounts[ERROR] \
                     and not altered_groups[ERROR]:
@@ -115,7 +109,7 @@ def main():
                 sys.exit(0)
             else:
                 logging.info("Child process exiting with status -1")
-                logging.warning("Error occured in %s" % (
+                logging.warning("Error occured in %s", (
                     ["%s: %s\n" % (k, v) for (k, v) in [
                         ("altered accounts", altered_accounts[ERROR]),
                         ("altered groups", altered_groups[ERROR]),
@@ -129,7 +123,7 @@ def main():
     else:
         # parent
         (_, result) = os.waitpid(parent_pid, 0)
-        logging.info("Child exited with exit code %d" % (result,))
+        logging.info("Child exited with exit code %d", result)
 
         if not result and not opts.options.dry_run:
             (_, ldap_timestamp) = convert_timestamp(start_time)

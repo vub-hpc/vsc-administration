@@ -37,7 +37,6 @@ from vsc.config.base import (
 )
 from vsc.filesystem.gpfs import GpfsOperations
 from vsc.filesystem.posix import PosixOperations
-from vsc.utils import fancylogger
 from vsc.utils.py2vs3 import ensure_ascii_string
 
 # Cache for user instances
@@ -45,9 +44,6 @@ _users_cache = {
     'VscAccountPageUser': {},
     'VscTier2AccountpageUser': {},
 }
-
-
-log = fancylogger.getLogger(__name__)
 
 
 class UserStatusUpdateError(Exception):
@@ -430,25 +426,25 @@ def update_user_status(user, client):
     The usergroup status is always in sync with thte accounts status
     """
     if user.dry_run:
-        log.info("User %s has account status %s. Dry-run, not changing anything", user.user_id, user.account.status)
+        logging.info("User %s has account status %s. Dry-run, not changing anything", user.user_id, user.account.status)
         return
 
     if user.account.status not in (NEW, MODIFIED, MODIFY):
-        log.info("Account %s has status %s, not changing" % (user.user_id, user.account.status))
+        logging.info("Account %s has status %s, not changing", user.user_id, user.account.status)
         return
 
     payload = {"status": ACTIVE}
     try:
         response_account = client.account[user.user_id].patch(body=payload)
     except HTTPError as err:
-        log.error("Account %s and UserGroup %s status were not changed", user.user_id, user.user_id)
+        logging.error("Account %s and UserGroup %s status were not changed", user.user_id, user.user_id)
         raise UserStatusUpdateError("Account %s status was not changed - received HTTP code %d" % err.code)
     else:
         account = mkVscAccount(response_account[1])
         if account.status == ACTIVE:
-            log.info("Account %s status changed to %s" % (user.user_id, ACTIVE))
+            logging.info("Account %s status changed to %s", user.user_id, ACTIVE)
         else:
-            log.error("Account %s status was not changed", user.user_id)
+            logging.error("Account %s status was not changed", user.user_id)
             raise UserStatusUpdateError("Account %s status was not changed, still at %s" %
                                         (user.user_id, account.status))
 
@@ -479,7 +475,7 @@ def process_users_quota(options, user_quota, storage_name, client, host_institut
 
             ok_quota.append(quota)
         except Exception:
-            log.exception("Cannot process user %s" % (user.user_id))
+            logging.exception("Cannot process user %s", user.user_id)
             error_quota.append(quota)
 
     return (ok_quota, error_quota)
@@ -524,7 +520,7 @@ def process_users(options, account_ids, storage_name, client, host_institute=GEN
 
             ok_users.append(user)
         except Exception:
-            log.exception("Cannot process user %s" % (user.user_id))
+            logging.exception("Cannot process user %s", user.user_id)
             error_users.append(user)
 
     return (ok_users, error_users)

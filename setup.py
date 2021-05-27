@@ -25,9 +25,9 @@ from vsc.install import shared_setup
 from vsc.install.shared_setup import ag, jt
 
 install_requires = [
-    'vsc-accountpage-clients >= 2.0.0',
+    'vsc-accountpage-clients >= 2.1.6',
     'vsc-base >= 3.0.6',
-    'vsc-config >= 3.4.2',
+    'vsc-config >= 3.7.0',
     'vsc-filesystems >= 1.0.1',
     'python-ldap',
     'vsc-ldap >= 2.0.0',
@@ -41,7 +41,7 @@ if sys.version_info < (3, 0):
     install_requires.append('enum34')
 
 PACKAGE = {
-    'version': '2.4.5',
+    'version': '2.5.0',
     'author': [ag, jt],
     'maintainer': [ag, jt],
     'tests_require': ['mock'],

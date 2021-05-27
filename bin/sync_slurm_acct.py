@@ -27,16 +27,11 @@ from vsc.accountpage.client import AccountpageClient
 from vsc.accountpage.wrappers import mkVo
 from vsc.administration.slurm.sync import get_slurm_acct_info, SyncTypes, SacctMgrException
 from vsc.administration.slurm.sync import slurm_institute_accounts, slurm_vo_accounts, slurm_user_accounts
-from vsc.config.base import GENT, VSC_SLURM_SYNC_CLUSTERS
-from vsc.utils import fancylogger
+from vsc.config.base import GENT, VSC_SLURM_SYNC_CLUSTERS, INSTITUTE_VOS_BY_INSTITUTE
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
 from vsc.utils.run import RunNoShell
 from vsc.utils.script_tools import ExtendedSimpleOption
 from vsc.utils.timestamp import convert_timestamp, write_timestamp, retrieve_timestamp_with_default
-
-logger = fancylogger.getLogger()
-fancylogger.logToScreen(True)
-fancylogger.setLogLevelInfo()
 
 NAGIOS_HEADER = "sync_slurm_acct"
 NAGIOS_CHECK_INTERVAL_THRESHOLD = 60 * 60  # 60 minutes
@@ -93,7 +88,6 @@ def main():
 
     try:
         client = AccountpageClient(token=opts.options.access_token, url=opts.options.account_page_url + "/api/")
-
         host_institute = opts.options.host_institute
 
         slurm_account_info = get_slurm_acct_info(SyncTypes.accounts)
@@ -108,11 +102,16 @@ def main():
             clusters = VSC_SLURM_SYNC_CLUSTERS[host_institute]
         sacctmgr_commands = []
 
-        # make sure the institutes and the default accounts (VOs) are there for each cluster
-        sacctmgr_commands += slurm_institute_accounts(slurm_account_info, clusters, host_institute)
-
         # All users belong to a VO, so fetching the VOs is necessary/
         account_page_vos = [mkVo(v) for v in client.vo.institute[opts.options.host_institute].get()[1]]
+
+        # make sure the institutes and the default accounts (VOs) are there for each cluster
+        institute_vos = dict([
+            (v.vsc_id, v)
+            for v in account_page_vos
+            if v.vsc_id in INSTITUTE_VOS_BY_INSTITUTE[host_institute].values()
+        ])
+        sacctmgr_commands += slurm_institute_accounts(slurm_account_info, clusters, host_institute, institute_vos)
 
         # The VOs do not track active state of users, so we need to fetch all accounts as well
         active_accounts = set([a["vsc_id"] for a in client.account.get()[1] if a["isactive"]])
@@ -145,10 +144,10 @@ def main():
             write_timestamp(SYNC_TIMESTAMP_FILENAME, ldap_timestamp)
             opts.epilogue("Accounts synced to slurm", stats)
         else:
-            logger.info("Dry run done")
+            logging.info("Dry run done")
 
     except Exception as err:
-        logging.exception("critical exception caught: %s" % (err))
+        logging.exception("critical exception caught: %s", err)
         opts.critical("Script failed in a horrible way")
         sys.exit(NAGIOS_EXIT_CRITICAL)
 

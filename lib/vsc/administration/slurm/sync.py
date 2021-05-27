@@ -21,7 +21,7 @@ from enum import Enum
 
 from vsc.accountpage.wrappers import mkNamedTupleInstance
 
-from vsc.config.base import ANTWERPEN, BRUSSEL, GENT, LEUVEN, INSTITUTE_VOS_BY_INSTITUTE
+from vsc.config.base import ANTWERPEN, BRUSSEL, GENT, LEUVEN, INSTITUTE_VOS_BY_INSTITUTE, INSTITUTE_FAIRSHARE
 from vsc.utils.missing import namedtuple_with_defaults
 from vsc.utils.run import asyncloop
 
@@ -134,7 +134,7 @@ def get_slurm_acct_info(info_type):
     return info
 
 
-def create_add_account_command(account, parent, organisation, cluster):
+def create_add_account_command(account, parent, organisation, cluster, fairshare):
     """
     Creates the command to add the given account.
 
@@ -154,6 +154,7 @@ def create_add_account_command(account, parent, organisation, cluster):
         "Parent={0}".format(parent or "root"),
         "Organization={0}".format(SLURM_ORGANISATIONS[organisation]),
         "Cluster={0}".format(cluster),
+        "Fairshare={0}".format(fairshare),
     ]
     logging.debug(
         "Adding command to add account %s with Parent=%s Cluster=%s Organization=%s",
@@ -165,6 +166,24 @@ def create_add_account_command(account, parent, organisation, cluster):
 
     return CREATE_ACCOUNT_COMMAND
 
+def create_change_account_fairshare_command(account, cluster, fairshare):
+    CHANGE_ACCOUNT_FAIRSHARE_COMMAND = [
+        SLURM_SACCT_MGR,
+        "-i",
+        "modify",
+        "account",
+        "name={0}".format(account),
+        "cluster={0}".format(cluster),
+        "set fairshare={0}".format(fairshare),
+    ]
+    logging.debug(
+        "Adding command to change fairshare for account %s on cluster %s to %d",
+        account,
+        cluster,
+        fairshare,
+    )
+
+    return CHANGE_ACCOUNT_FAIRSHARE_COMMAND
 
 def create_add_user_command(user, vo_id, cluster):
     """
@@ -246,7 +265,7 @@ def create_remove_user_command(user, cluster):
     return REMOVE_USER_COMMAND
 
 
-def slurm_institute_accounts(slurm_account_info, clusters, host_institute):
+def slurm_institute_accounts(slurm_account_info, clusters, host_institute, institute_vos):
     """Check for the presence of the institutes and their default VOs in the slurm account list.
 
     @returns: list of sacctmgr commands to add the accounts to the clusters if needed
@@ -254,14 +273,27 @@ def slurm_institute_accounts(slurm_account_info, clusters, host_institute):
     commands = []
     for cluster in clusters:
         cluster_accounts = [acct.Account for acct in slurm_account_info if acct and acct.Cluster == cluster]
-        for (inst, vo) in INSTITUTE_VOS_BY_INSTITUTE[host_institute].items():
+        for (inst, vo) in sorted(list(INSTITUTE_VOS_BY_INSTITUTE[host_institute].items())):
+
             if inst not in cluster_accounts:
                 commands.append(
-                    create_add_account_command(account=inst, parent=None, cluster=cluster, organisation=inst)
+                    create_add_account_command(
+                        account=inst,
+                        parent=None,
+                        cluster=cluster,
+                        organisation=inst,
+                        fairshare=INSTITUTE_FAIRSHARE[host_institute][inst]
+                    )
                 )
             if vo not in cluster_accounts:
                 commands.append(
-                    create_add_account_command(account=vo, parent=inst, cluster=cluster, organisation=inst)
+                    create_add_account_command(
+                        account=vo,
+                        parent=inst,
+                        cluster=cluster,
+                        organisation=inst,
+                        fairshare=institute_vos[vo].fairshare # needs to come from the AP
+                    )
                 )
 
     return commands
@@ -274,19 +306,37 @@ def slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_insti
     """
     commands = []
     for cluster in clusters:
-        cluster_accounts = [acct.Account for acct in slurm_account_info if acct and acct.Cluster == cluster]
+        cluster_accounts = dict([
+            (acct.Account, int(acct.Share))
+            for acct in slurm_account_info
+            if acct and acct.Cluster == cluster
+        ])
 
         for vo in account_page_vos:
+
+            # skip the "default" VOs for our own institute
             if vo.vsc_id in INSTITUTE_VOS_BY_INSTITUTE[host_institute].values():
                 continue
 
+            # create a new account for a VO that does not already have an account
             if vo.vsc_id not in cluster_accounts:
                 commands.append(create_add_account_command(
                     account=vo.vsc_id,
                     parent=vo.institute['name'],
                     cluster=cluster,
-                    organisation=vo.institute['name']
+                    organisation=vo.institute['name'],
+                    fairshare=vo.fairshare,
                 ))
+
+            # create update commands for VOs with a changed fairshare
+            elif int(vo.fairshare) != cluster_accounts[vo.vsc_id]:
+                commands.append(create_change_account_fairshare_command(
+                    account=vo.vsc_id,
+                    cluster=cluster,
+                    fairshare=vo.fairshare,
+                ))
+
+            # TODO: create removal commands when VOs go inactive
 
     return commands
 

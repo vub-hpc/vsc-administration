@@ -36,7 +36,6 @@ from vsc.accountpage.wrappers import mkVscUserSizeQuota
 from vsc.administration.user import process_users, process_users_quota
 from vsc.administration.vo import process_vos
 from vsc.config.base import GENT
-from vsc.utils import fancylogger
 from vsc.utils.missing import nub
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
 from vsc.utils.script_tools import ExtendedSimpleOption
@@ -47,10 +46,6 @@ NAGIOS_CHECK_INTERVAL_THRESHOLD = 15 * 60  # 15 minutes
 
 SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
 SYNC_VSC_USERS_LOGFILE = "/var/log/%s.log" % (NAGIOS_HEADER)
-
-logger = fancylogger.getLogger()
-fancylogger.logToScreen(True)
-fancylogger.setLogLevelInfo()
 
 STORAGE_USERS_LIMIT_WARNING = 1
 STORAGE_USERS_LIMIT_CRITICAL = 10
@@ -104,8 +99,8 @@ def main():
         if opts.options.user:
             changed_accounts = client.account.institute[institute].modified[last_timestamp].get()[1]
 
-            logging.info("Found %d %s accounts that have changed in the accountpage since %s" %
-                        (len(changed_accounts), institute, last_timestamp))
+            logging.info("Found %d %s accounts that have changed in the accountpage since %s",
+                        len(changed_accounts), institute, last_timestamp)
 
             accounts = nub([u['vsc_id'] for u in changed_accounts])
 
@@ -146,10 +141,10 @@ def main():
             vos = sorted(set([v['vsc_id'] for v in changed_vos] +
                              [v['virtual_organisation'] for v in changed_vo_quota]))
 
-            logging.info("Found %d %s VOs that have changed in the accountpage since %s" %
-                        (len(changed_vos), institute, last_timestamp))
-            logging.info("Found %d %s VOs that have changed quota in the accountpage since %s" %
-                        (len(changed_vo_quota), institute, last_timestamp))
+            logging.info("Found %d %s VOs that have changed in the accountpage since %s",
+                        len(changed_vos), institute, last_timestamp)
+            logging.info("Found %d %s VOs that have changed quota in the accountpage since %s",
+                        len(changed_vo_quota), institute, last_timestamp)
             logging.debug("Found the following {institute} VOs: {vos}".format(institute=institute, vos=vos))
 
             for storage_name in opts.options.storage:
@@ -169,7 +164,7 @@ def main():
             (_, ldap_timestamp) = convert_timestamp(start_time)
             write_timestamp(SYNC_TIMESTAMP_FILENAME, ldap_timestamp)
     except Exception as err:
-        logger.exception("critical exception caught: %s" % (err))
+        logging.exception("critical exception caught: %s", err)
         opts.critical("Script failed in a horrible way")
         sys.exit(NAGIOS_EXIT_CRITICAL)
 

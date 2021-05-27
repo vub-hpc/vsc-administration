@@ -19,41 +19,38 @@ Sets up the basic structure on the UGent home and data storage
 @author: Andy Georges
 """
 
+import logging
 import os
 from vsc.utils.py2vs3 import configparser
 
 from vsc.filesystem.gpfs import GpfsOperations
 from vsc.config.base import VscStorage
-from vsc.utils import fancylogger
 
 QUOTA_CONF_FILE = '/etc/quota_check.conf'
-
-log = fancylogger.getLogger('create_directory_trees_tier2_home_data')
-fancylogger.setLogLevelInfo()
 
 
 def set_up_apps(gpfs, storage_settings, storage, filesystem_info, filesystem_name):
     """Set up the apps fileset."""
-    log.info("Setting up the apps fileset on storage %s" % (storage))
+    logging.info("Setting up the apps fileset on storage %s", storage)
     fileset_name = storage_settings.path_templates[storage]['apps'][0]
     fileset_path = os.path.join(filesystem_info['defaultMountPoint'], fileset_name)
     if fileset_name not in [f['filesetName'] for f in gpfs.gpfslocalfilesets[filesystem_name].values()]:
         gpfs.make_fileset(fileset_path, fileset_name)
         gpfs.chmod(0o755, fileset_path)
-        log.info("Fileset %s created and linked at %s" % (fileset_name, fileset_path))
+        logging.info("Fileset %s created and linked at %s", fileset_name, fileset_path)
 
 
 def set_up_filesystem(gpfs, storage_settings, storage, filesystem_info, filesystem_name, vo_support=False):
     """Set up the filesets and directories such that user, vo directories and friends can be created."""
 
     # Create the basic gent fileset
-    log.info("Setting up for storage %s" % (storage))
+    logging.info("Setting up for storage %s", storage)
     fileset_name = storage_settings.path_templates[storage]['user'][0]
     fileset_path = os.path.join(filesystem_info['defaultMountPoint'], fileset_name)
     if fileset_name not in [f['filesetName'] for f in gpfs.gpfslocalfilesets[filesystem_name].values()]:
         gpfs.make_fileset(fileset_path, fileset_name)
         gpfs.chmod(0o755, fileset_path)
-        log.info("Fileset %s created and linked at %s" % (fileset_name, fileset_path))
+        logging.info("Fileset %s created and linked at %s", fileset_name, fileset_path)
 
     if vo_support:
         # Create the basic vo fileset
@@ -62,7 +59,7 @@ def set_up_filesystem(gpfs, storage_settings, storage, filesystem_info, filesyst
         if fileset_name not in [f['filesetName'] for f in gpfs.gpfslocalfilesets[filesystem_name].values()]:
             gpfs.make_fileset(vo_fileset_path, fileset_name)
             gpfs.chmod(0o755, vo_fileset_path)
-            log.info("Fileset %s created and linked at %s" % (fileset_name, vo_fileset_path))
+            logging.info("Fileset %s created and linked at %s", fileset_name, vo_fileset_path)
 
 
 def main():
