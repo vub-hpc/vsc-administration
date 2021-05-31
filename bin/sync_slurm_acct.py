@@ -27,7 +27,7 @@ from vsc.accountpage.client import AccountpageClient
 from vsc.accountpage.wrappers import mkVo
 from vsc.administration.slurm.sync import get_slurm_acct_info, SyncTypes, SacctMgrException
 from vsc.administration.slurm.sync import slurm_institute_accounts, slurm_vo_accounts, slurm_user_accounts
-from vsc.config.base import GENT, VSC_SLURM_SYNC_CLUSTERS, INSTITUTE_VOS_BY_INSTITUTE
+from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, INSTITUTE_VOS_BY_INSTITUTE, PRODUCTION, PILOT
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
 from vsc.utils.run import RunNoShell
 from vsc.utils.script_tools import ExtendedSimpleOption
@@ -77,9 +77,9 @@ def main():
         'start_timestamp': ('Timestamp to start the sync from', str, 'store', None),
         'cluster_classes': (
             'Classes of clusters that should be synced, comma-separated',
-            str,
+            "strlist",
             'store',
-            "production,pilot"
+            [PRODUCTION, PILOT]
         )
     }
 
@@ -105,7 +105,7 @@ def main():
         if opts.options.clusters is not None:
             clusters = opts.options.clusters.split(",")
         else:
-            clusters = [cs for p in opts.options.cluster_classes.split(',') for cs in  VSC_SLURM_SYNC_CLUSTERS[host_institute]]
+            clusters = [cs for p in opts.options.cluster_classes.split(',') for cs in  VSC_SLURM_CLUSTERS[host_institute]]
         sacctmgr_commands = []
 
         # All users belong to a VO, so fetching the VOs is necessary/
