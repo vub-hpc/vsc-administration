@@ -105,7 +105,10 @@ def main():
         if opts.options.clusters is not None:
             clusters = opts.options.clusters.split(",")
         else:
-            clusters = [cs for p in opts.options.cluster_classes.split(',') for cs in  VSC_SLURM_CLUSTERS[host_institute]]
+            clusters = [cs
+                for p in opts.options.cluster_classes.split(',')
+                for cs in  VSC_SLURM_CLUSTERS[host_institute][p]
+            ]
         sacctmgr_commands = []
 
         # All users belong to a VO, so fetching the VOs is necessary/
