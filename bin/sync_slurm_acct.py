@@ -107,7 +107,7 @@ def main():
         else:
             clusters = [cs
                 for p in opts.options.cluster_classes
-                for cs in  VSC_SLURM_CLUSTERS[host_institute][p]
+                for cs in VSC_SLURM_CLUSTERS[host_institute][p]
             ]
         sacctmgr_commands = []
 
