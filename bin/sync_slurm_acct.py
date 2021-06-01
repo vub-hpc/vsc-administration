@@ -70,9 +70,9 @@ def main():
         "clusters": (
             "Cluster(s) (comma-separated) to sync for. "
             "Overrides <host_institute>_SLURM_COMPUTE_CLUSTERS that are in production.",
-            str,
+            "strlist",
             "store",
-            None,
+            [],
         ),
         'start_timestamp': ('Timestamp to start the sync from', str, 'store', None),
         'cluster_classes': (
@@ -102,8 +102,8 @@ def main():
         logging.debug("%d accounts found", len(slurm_account_info))
         logging.debug("%d users found", len(slurm_user_info))
 
-        if opts.options.clusters is not None:
-            clusters = opts.options.clusters.split(",")
+        if opts.options.clusters:
+            clusters = opts.options.clusters
         else:
             clusters = [cs
                 for p in opts.options.cluster_classes
