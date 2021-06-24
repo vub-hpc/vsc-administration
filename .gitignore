@@ -12,6 +12,7 @@ sdist
 develop-eggs
 .installed.cfg
 .eggs*
+.vscode
 
 *~
 .#*
