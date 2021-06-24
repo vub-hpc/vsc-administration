@@ -174,7 +174,8 @@ def create_change_account_fairshare_command(account, cluster, fairshare):
         "account",
         "name={0}".format(account),
         "cluster={0}".format(cluster),
-        "set fairshare={0}".format(fairshare),
+        "set",
+        "fairshare={0}".format(fairshare),
     ]
     logging.debug(
         "Adding command to change fairshare for account %s on cluster %s to %d",
