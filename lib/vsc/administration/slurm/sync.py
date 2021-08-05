@@ -43,21 +43,38 @@ class SacctMgrException(Exception):
 class SyncTypes(Enum):
     accounts = "accounts"
     users = "users"
+    qos = "qos"
 
 
 IGNORE_USERS = ["root"]
 IGNORE_ACCOUNTS = ["root"]
+IGNORE_QOS = ["normal"]
 
-SacctUserFields = ["User", "Def_Acct", "Admin", "Cluster", "Account", "Partition", "Share",
-                   "MaxJobs", "MaxNodes", "MaxCPUs", "MaxSubmit", "MaxWall", "MaxCPUMins",
-                   "QOS", "Def_QOS"]
-SacctAccountFields = ["Account", "Descr", "Org", "Cluster", "Par_Name", "User", "Share",
-                      "GrpJobs", "GrpNodes", "GrpCPUs", "GrpMem", "GrpSubmit", "GrpWall", "GrpCPUMins",
-                      "MaxJobs", "MaxNodes", "MaxCPUs", "MaxSubmit", "MaxWall", "MaxCPUMins",
-                      "QOS", "Def_QOS"]
+# Fields for Slurm 20.11.
+# FIXME: at some point this should be versioned
+
+SacctUserFields = [
+    "User", "Def_Acct", "Admin", "Cluster", "Account", "Partition", "Share",
+    "MaxJobs", "MaxNodes", "MaxCPUs", "MaxSubmit", "MaxWall", "MaxCPUMins",
+    "QOS", "Def_QOS"
+]
+SacctAccountFields = [
+    "Account", "Descr", "Org", "Cluster", "Par_Name", "User", "Share",
+    "GrpJobs", "GrpNodes", "GrpCPUs", "GrpMem", "GrpSubmit", "GrpWall", "GrpCPUMins",
+    "MaxJobs", "MaxNodes", "MaxCPUs", "MaxSubmit", "MaxWall", "MaxCPUMins",
+    "QOS", "Def_QOS"
+]
+SacctMgrQosFields = [
+    "Name","Priority","GraceTime","Preempt","PreemptExemptTime","PreemptMode",
+    "Flags","UsageThres","UsageFactor","GrpTRES","GrpTRESMins","GrpTRESRunMins",
+    "GrpJobs","GrpSubmit","GrpWall","MaxTRES","MaxTRESPerNode","MaxTRESMins",
+    "MaxWall","MaxTRESPU","MaxJobsPU","MaxSubmitPU","MaxTRESPA","MaxJobsPA",
+    "MaxSubmitPA","MinTRES"
+]
 
 SlurmAccount = namedtuple_with_defaults('SlurmAccount', SacctAccountFields)
 SlurmUser = namedtuple_with_defaults('SlurmUser', SacctUserFields)
+SlurmQos = namedtuple_with_defaults('SlurmQos', SacctMgrQosFields)
 
 
 def mkSlurmAccount(fields):
@@ -76,6 +93,12 @@ def mkSlurmUser(fields):
     return user
 
 
+def mkSlurmQos(fields):
+    """Make a named tuple from the given fields"""
+    qos = mkNamedTupleInstance(fields, SlurmQos)
+    return qos
+
+
 def parse_slurm_acct_line(header, line, info_type, user_field_number):
     """Parse the line into the correct data type."""
     fields = line.split("|")
@@ -87,6 +110,8 @@ def parse_slurm_acct_line(header, line, info_type, user_field_number):
         creator = mkSlurmAccount
     elif info_type == SyncTypes.users:
         creator = mkSlurmUser
+    elif info_type == SyncTypes.qos:
+        creator = mkSlurmQos
     else:
         return None
 
@@ -170,6 +195,7 @@ def create_add_account_command(account, parent, organisation, cluster, fairshare
         )
 
     return CREATE_ACCOUNT_COMMAND
+
 
 def create_change_account_fairshare_command(account, cluster, fairshare):
     CHANGE_ACCOUNT_FAIRSHARE_COMMAND = [
@@ -353,7 +379,7 @@ def get_cluster_accounts(slurm_account_info, cluster):
         ])
 
 
-def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, host_institute):
+def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
     """Check for new/changed projects and create their accounts accordingly
 
     XXX: The project name is the same as the group name in the AP that corresponds to the project.
