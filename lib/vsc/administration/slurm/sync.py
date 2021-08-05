@@ -21,7 +21,7 @@ from enum import Enum
 
 from vsc.accountpage.wrappers import mkNamedTupleInstance
 
-from vsc.config.base import ANTWERPEN, BRUSSEL, GENT, LEUVEN, INSTITUTE_VOS_BY_INSTITUTE, INSTITUTE_FAIRSHARE
+from vsc.config.base import ANTWERPEN, BRUSSEL, GENT, LEUVEN, INSTITUTE_VOS_BY_INSTITUTE, INSTITUTE_FAIRSHARE, MODIFY
 from vsc.utils.missing import namedtuple_with_defaults
 from vsc.utils.run import asyncloop
 
@@ -134,7 +134,7 @@ def get_slurm_acct_info(info_type):
     return info
 
 
-def create_add_account_command(account, parent, organisation, cluster, fairshare):
+def create_add_account_command(account, parent, organisation, cluster, fairshare=None, qos=None):
     """
     Creates the command to add the given account.
 
@@ -153,9 +153,14 @@ def create_add_account_command(account, parent, organisation, cluster, fairshare
         account,
         "Parent={0}".format(parent or "root"),
         "Organization={0}".format(SLURM_ORGANISATIONS[organisation]),
-        "Cluster={0}".format(cluster),
-        "Fairshare={0}".format(fairshare),
+        "Cluster={0}".format(cluster)
     ]
+
+    if fairshare is not None:
+        CREATE_ACCOUNT_COMMAND.append("Fairshare={0}".format(fairshare))
+    if qos is not None:
+        CREATE_ACCOUNT_COMMAND.append("Qos={0}".format(qos))
+
     logging.debug(
         "Adding command to add account %s with Parent=%s Cluster=%s Organization=%s",
         account,
@@ -185,6 +190,7 @@ def create_change_account_fairshare_command(account, cluster, fairshare):
     )
 
     return CHANGE_ACCOUNT_FAIRSHARE_COMMAND
+
 
 def create_add_user_command(user, vo_id, cluster):
     """
@@ -264,6 +270,45 @@ def create_remove_user_command(user, cluster):
         )
 
     return REMOVE_USER_COMMAND
+
+
+def create_add_qos_command(name):
+    """Create the command to add a QOS
+
+    @returns: the list comprising the command
+    """
+    ADD_QOS_COMMAND = [
+        SLURM_SACCT_MGR,
+        "-i",
+        "add"
+        "qos"
+        "name={0}".format(name)
+    ]
+
+    return ADD_QOS_COMMAND
+
+
+def create_modify_qos_command(name, settings):
+    """Create the command to modify a QOS
+
+    @param name: the name of the QOS to modify
+    @param settings: dict with the items that should be set (key/value pairs)
+
+    @returns: the list comprising the command
+    """
+    MODIFY_QOS_COMMAND = [
+        SLURM_SACCT_MGR,
+        "-i",
+        "modify",
+        "qos",
+        name,
+        "set"
+    ]
+
+    for k, v in settings:
+        MODIFY_QOS_COMMAND.append("{0}={1}".format(k, v))
+
+    return MODIFY_QOS_COMMAND
 
 
 def slurm_institute_accounts(slurm_account_info, clusters, host_institute, institute_vos):
