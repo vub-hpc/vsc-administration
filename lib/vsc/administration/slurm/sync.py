@@ -345,6 +345,37 @@ def slurm_institute_accounts(slurm_account_info, clusters, host_institute, insti
     return commands
 
 
+def get_cluster_accounts(slurm_account_info, cluster):
+    return dict([
+            (acct.Account, int(acct.Share))
+            for acct in slurm_account_info
+            if acct and acct.Cluster == cluster
+        ])
+
+
+def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, host_institute):
+    """Check for new/changed projects and create their accounts accordingly
+
+    XXX: The project name is the same as the group name in the AP that corresponds to the project.
+    """
+    commands = []
+    for cluster in clusters:
+        cluster_accounts = get_cluster_accounts(slurm_account_info, cluster)
+
+        for project in resource_app_projects:
+            if project.name not in cluster_accounts:
+                commands.append(create_add_account_command(
+                    account=project.name,
+                    parent="root",
+                    cluster=cluster,
+                    organisation=GENT,   # tier-1 projects run here :p
+                    qos=project.name,
+                ))
+
+        #TODO: delete obsolete projects
+
+    return commands
+
 def slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_institute):
     """Check for the presence of the new/changed VOs in the slurm account list.
 
@@ -352,11 +383,7 @@ def slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_insti
     """
     commands = []
     for cluster in clusters:
-        cluster_accounts = dict([
-            (acct.Account, int(acct.Share))
-            for acct in slurm_account_info
-            if acct and acct.Cluster == cluster
-        ])
+        cluster_accounts = get_cluster_accounts(slurm_account_info, cluster)
 
         for vo in account_page_vos:
 
