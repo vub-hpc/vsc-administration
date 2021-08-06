@@ -40,10 +40,10 @@ class SlurmSyncTestGent(TestCase):
         """Test that the commands to create accounts are correctly generated."""
 
         vos = [
-            VO(vsc_id="gvo00001", institute={"name": "gent"}, fairshare=10, qos=foobar),
+            VO(vsc_id="gvo00001", institute={"name": "gent"}, fairshare=10, qos="foobar"),
             VO(vsc_id="gvo00002", institute={"name": "gent"}, fairshare=20),
             VO(vsc_id="gvo00012", institute={"name": "gent"}, fairshare=100),
-            VO(vsc_id="gvo00016", institute={"name": "gent"}, fairshare=10, qos=huppel),
+            VO(vsc_id="gvo00016", institute={"name": "gent"}, fairshare=10, qos="huppel"),
             VO(vsc_id="gvo00017", institute={"name": "gent"}, fairshare=10),
             VO(vsc_id="gvo00018", institute={"name": "gent"}, fairshare=10),
         ]
