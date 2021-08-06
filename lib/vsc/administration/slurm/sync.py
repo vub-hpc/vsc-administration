@@ -21,7 +21,7 @@ from enum import Enum
 
 from vsc.accountpage.wrappers import mkNamedTupleInstance
 
-from vsc.config.base import ANTWERPEN, BRUSSEL, GENT, LEUVEN, INSTITUTE_VOS_BY_INSTITUTE, INSTITUTE_FAIRSHARE, MODIFY
+from vsc.config.base import ANTWERPEN, BRUSSEL, GENT, LEUVEN, INSTITUTE_VOS_BY_INSTITUTE, INSTITUTE_FAIRSHARE
 from vsc.utils.missing import namedtuple_with_defaults
 from vsc.utils.run import asyncloop
 
