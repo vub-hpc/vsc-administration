@@ -65,11 +65,11 @@ SacctAccountFields = [
     "QOS", "Def_QOS"
 ]
 SacctMgrQosFields = [
-    "Name","Priority","GraceTime","Preempt","PreemptExemptTime","PreemptMode",
-    "Flags","UsageThres","UsageFactor","GrpTRES","GrpTRESMins","GrpTRESRunMins",
-    "GrpJobs","GrpSubmit","GrpWall","MaxTRES","MaxTRESPerNode","MaxTRESMins",
-    "MaxWall","MaxTRESPU","MaxJobsPU","MaxSubmitPU","MaxTRESPA","MaxJobsPA",
-    "MaxSubmitPA","MinTRES"
+    "Name", "Priority", "GraceTime", "Preempt", "PreemptExemptTime", "PreemptMode",
+    "Flags", "UsageThres", "UsageFactor", "GrpTRES", "GrpTRESMins", "GrpTRESRunMins",
+    "GrpJobs", "GrpSubmit", "GrpWall", "MaxTRES", "MaxTRESPerNode", "MaxTRESMins",
+    "MaxWall", "MaxTRESPU", "MaxJobsPU", "MaxSubmitPU", "MaxTRESPA", "MaxJobsPA",
+    "MaxSubmitPA", "MinTRES"
 ]
 
 SlurmAccount = namedtuple_with_defaults('SlurmAccount', SacctAccountFields)
@@ -372,11 +372,31 @@ def slurm_institute_accounts(slurm_account_info, clusters, host_institute, insti
 
 
 def get_cluster_accounts(slurm_account_info, cluster):
+    # FIXME: also add the QoS
     return dict([
             (acct.Account, int(acct.Share))
             for acct in slurm_account_info
             if acct and acct.Cluster == cluster
         ])
+
+
+def get_cluster_qos(slurm_qos_info, cluster):
+    """Returns a list of QOS names related to the given cluster"""
+
+    return [qi.name for qi in slurm_qos_info if qi.name.startswith(cluster)]
+
+
+def slurm_project_qos(resource_app_projects, slurm_qos_info, clusters):
+    """Check for new/changed projects and set their QOS accordingly"""
+    commands = []
+    for cluster in clusters:
+        cluster_qos = get_cluster_qos(slurm_qos_info, cluster)
+
+        for project in resource_app_projects:
+            qos_name = "{0}-{1}".format(cluster, project.name)
+            if qos_name not in cluster_qos:
+                commands.append(create_add_qos_command(qos_name))
+
 
 
 def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
@@ -395,7 +415,7 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
                     parent="root",
                     cluster=cluster,
                     organisation=GENT,   # tier-1 projects run here :p
-                    qos=project.name,
+                    qos="{0}-{1}".format(cluster, project.name),  # QOS is not attached to a cluster
                 ))
 
         #TODO: delete obsolete projects
