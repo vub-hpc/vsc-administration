@@ -51,7 +51,7 @@ IGNORE_ACCOUNTS = ["root"]
 SacctUserFields = ["User", "Def_Acct", "Admin", "Cluster", "Account", "Partition", "Share",
                    "MaxJobs", "MaxNodes", "MaxCPUs", "MaxSubmit", "MaxWall", "MaxCPUMins",
                    "QOS", "Def_QOS"]
-SacctAccountFields = ["Account", "Descr", "Org", "Cluster", "Par_Name", "User", "Share",
+SacctAccountFields = ["Account", "Descr", "Org", "Cluster", "ParentName", "User", "Share",
                       "GrpJobs", "GrpNodes", "GrpCPUs", "GrpMem", "GrpSubmit", "GrpWall", "GrpCPUMins",
                       "MaxJobs", "MaxNodes", "MaxCPUs", "MaxSubmit", "MaxWall", "MaxCPUMins",
                       "QOS", "Def_QOS"]
