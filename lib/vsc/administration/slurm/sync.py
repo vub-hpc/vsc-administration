@@ -397,7 +397,7 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
                     for user in changed_users:
                         try:
                             moved_users.add((user, reverse_vo_mapping[user]))
-                        except KeyError as err:
+                        except KeyError:
                             logging.warning("Dry run, cannot find up user %s in reverse VO map",
                                             user)
 
