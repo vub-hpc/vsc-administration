@@ -109,7 +109,7 @@ class SlurmSyncTestGent(TestCase):
         """Test that the sacctmgr output is correctly processed."""
 
         sacctmgr_account_output = [
-            "Account|Descr|Org|Cluster|Par Name|User|Share|GrpJobs|GrpNodes|GrpCPUs|GrpMem|GrpSubmit|GrpWall|GrpCPUMins|MaxJobs|MaxNodes|MaxCPUs|MaxSubmit|MaxWall|MaxCPUMins|QOS|Def QOS",
+            "Account|Descr|Org|Cluster|ParentName|User|Share|GrpJobs|GrpNodes|GrpCPUs|GrpMem|GrpSubmit|GrpWall|GrpCPUMins|MaxJobs|MaxNodes|MaxCPUs|MaxSubmit|MaxWall|MaxCPUMins|QOS|Def QOS",
             "antwerpen|antwerpen|uantwerpen|banette|root||1||||||||||||||normal|",
             "brussel|brussel|vub|banette|root||1||||||||||||||normal|",
             "gent|gent|ugent|banette|root||1||||||||||||||normal|",
