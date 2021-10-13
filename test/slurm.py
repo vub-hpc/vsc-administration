@@ -30,8 +30,8 @@ from vsc.administration.slurm.sync import (
 from vsc.administration.slurm.sync import SyncTypes, SlurmAccount, SlurmUser
 
 
-VO = namedtuple("VO", ["vsc_id", "institute", "fairshare"])
-
+VO = namedtuple("VO", ["vsc_id", "institute", "fairshare", "qos"])
+VO.__new__.__defaults__ = (None,) * len(VO._fields)
 
 class SlurmSyncTestGent(TestCase):
     """Test for the slurm account sync in Gent"""
