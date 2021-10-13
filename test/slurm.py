@@ -25,7 +25,7 @@ from vsc.install.testing import TestCase
 
 from vsc.administration.slurm.sync import (
     slurm_vo_accounts, slurm_user_accounts, parse_slurm_acct_dump,
-    slurm_institute_accounts
+    slurm_institute_accounts, slurm_project_accounts,
 )
 from vsc.administration.slurm.sync import SyncTypes, SlurmAccount, SlurmUser
 
@@ -40,10 +40,10 @@ class SlurmSyncTestGent(TestCase):
         """Test that the commands to create accounts are correctly generated."""
 
         vos = [
-            VO(vsc_id="gvo00001", institute={"name": "gent"}, fairshare=10, qos="foobar"),
+            VO(vsc_id="gvo00001", institute={"name": "gent"}, fairshare=10),
             VO(vsc_id="gvo00002", institute={"name": "gent"}, fairshare=20),
             VO(vsc_id="gvo00012", institute={"name": "gent"}, fairshare=100),
-            VO(vsc_id="gvo00016", institute={"name": "gent"}, fairshare=10, qos="huppel"),
+            VO(vsc_id="gvo00016", institute={"name": "gent"}, fairshare=10),
             VO(vsc_id="gvo00017", institute={"name": "gent"}, fairshare=10),
             VO(vsc_id="gvo00018", institute={"name": "gent"}, fairshare=10),
         ]
@@ -51,9 +51,14 @@ class SlurmSyncTestGent(TestCase):
         commands = slurm_vo_accounts(vos, [], ["mycluster"], 'gent')
 
         self.assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
-            shlex.split("/usr/bin/sacctmgr -i add account gvo00001 Parent=gent Organization=ugent Cluster=mycluster Fairshare=10 Qos=foobar"),
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00001 Parent=gent Organization=ugent Cluster=mycluster Fairshare=10"),
             shlex.split("/usr/bin/sacctmgr -i add account gvo00002 Parent=gent Organization=ugent Cluster=mycluster Fairshare=20")
         ]])
+
+
+    def test_slurm_project_accounts(self):
+        pass
+
 
     def test_slurm_institute_accounts(self):
 
@@ -76,6 +81,7 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/sacctmgr -i add account leuven Parent=root Organization=kuleuven Cluster=mycluster Fairshare=500"),
             shlex.split("/usr/bin/sacctmgr -i add account gvo00018 Parent=leuven Organization=kuleuven Cluster=mycluster Fairshare=20"),
         ]])
+
 
     def test_slurm_user_accounts(self):
         """Test that the commands to create, change and remove users are correctly generated."""
