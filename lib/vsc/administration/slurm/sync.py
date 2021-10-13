@@ -398,6 +398,9 @@ def slurm_project_qos(resource_app_projects, slurm_qos_info, clusters):
                 commands.append(create_add_qos_command(qos_name))
 
 
+def slurm_modify_qos():
+    # FIXME: this does not really belong here, since modifications will depend on the goal of the qos
+    pass
 
 def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
     """Check for new/changed projects and create their accounts accordingly
@@ -516,8 +519,8 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
                         try:
                             moved_users.add((user, reverse_vo_mapping[user]))
                         except KeyError as err:
-                            logging.warning("Dry run, cannot find up user %s in reverse VO map",
-                                            user)
+                            logging.warning("Dry run, cannot find up user %s in reverse VO map: %s",
+                                            user, err)
 
         logging.debug("%d new users", len(new_users))
         logging.debug("%d removed users", len(remove_users))
