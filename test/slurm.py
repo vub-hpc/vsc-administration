@@ -33,6 +33,10 @@ from vsc.administration.slurm.sync import SyncTypes, SlurmAccount, SlurmUser
 VO = namedtuple("VO", ["vsc_id", "institute", "fairshare", "qos"])
 VO.__new__.__defaults__ = (None,) * len(VO._fields)
 
+Project = namedtuple("Project", ["name"])
+Project.__new__.__defaults__ = (None,) * len(Project._fields)
+
+
 class SlurmSyncTestGent(TestCase):
     """Test for the slurm account sync in Gent"""
 
@@ -57,7 +61,21 @@ class SlurmSyncTestGent(TestCase):
 
 
     def test_slurm_project_accounts(self):
-        pass
+        """Test that the commands to create accounts for projects are correctly generated."""
+
+        projects = [
+            Project(name="gpr_compute_project1"),
+            Project(name="gpr_compute_project2"),
+        ]
+
+        commands = slurm_project_accounts(projects, [], ["mycluster"])
+
+        self .assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
+            shlex.split(
+                "/usr/bin/sacctmgr -i add account {prname} Parent=projects Organization=gent Cluster=mycluster Qos={cluster}-{prname}".format(
+                    prname="gpr_compute_project1", cluster="mycluster"
+                )),
+        ]])
 
 
     def test_slurm_institute_accounts(self):

@@ -415,7 +415,7 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
             if project.name not in cluster_accounts:
                 commands.append(create_add_account_command(
                     account=project.name,
-                    parent="root",
+                    parent="projects",  # in case we want to deploy on Tier-2 as well
                     cluster=cluster,
                     organisation=GENT,   # tier-1 projects run here :p
                     qos="{0}-{1}".format(cluster, project.name),  # QOS is not attached to a cluster
