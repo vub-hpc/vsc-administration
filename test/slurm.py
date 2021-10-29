@@ -55,8 +55,8 @@ class SlurmSyncTestGent(TestCase):
         commands = slurm_vo_accounts(vos, [], ["mycluster"], 'gent')
 
         self.assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
-            shlex.split("/usr/bin/sacctmgr -i add account gvo00001 Parent=gent Organization=ugent Cluster=mycluster Fairshare=10"),
-            shlex.split("/usr/bin/sacctmgr -i add account gvo00002 Parent=gent Organization=ugent Cluster=mycluster Fairshare=20")
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00001 Parent=gent Organization=gent Cluster=mycluster Fairshare=10"),
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00002 Parent=gent Organization=gent Cluster=mycluster Fairshare=20")
         ]])
 
 
@@ -94,8 +94,8 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/sacctmgr -i add account gvo00017 Parent=antwerpen Organization=uantwerpen Cluster=mycluster Fairshare=30"),
             shlex.split("/usr/bin/sacctmgr -i add account brussel Parent=root Organization=vub Cluster=mycluster Fairshare=500"),
             shlex.split("/usr/bin/sacctmgr -i add account gvo00016 Parent=brussel Organization=vub Cluster=mycluster Fairshare=10"),
-            shlex.split("/usr/bin/sacctmgr -i add account gent Parent=root Organization=ugent Cluster=mycluster Fairshare=8500"),
-            shlex.split("/usr/bin/sacctmgr -i add account gvo00012 Parent=gent Organization=ugent Cluster=mycluster Fairshare=100"),
+            shlex.split("/usr/bin/sacctmgr -i add account gent Parent=root Organization=gent Cluster=mycluster Fairshare=8500"),
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00012 Parent=gent Organization=gent Cluster=mycluster Fairshare=100"),
             shlex.split("/usr/bin/sacctmgr -i add account leuven Parent=root Organization=kuleuven Cluster=mycluster Fairshare=500"),
             shlex.split("/usr/bin/sacctmgr -i add account gvo00018 Parent=leuven Organization=kuleuven Cluster=mycluster Fairshare=20"),
         ]])
@@ -136,9 +136,9 @@ class SlurmSyncTestGent(TestCase):
             "Account|Descr|Org|Cluster|Par Name|User|Share|GrpJobs|GrpNodes|GrpCPUs|GrpMem|GrpSubmit|GrpWall|GrpCPUMins|MaxJobs|MaxNodes|MaxCPUs|MaxSubmit|MaxWall|MaxCPUMins|QOS|Def QOS",
             "antwerpen|antwerpen|uantwerpen|banette|root||1||||||||||||||normal|",
             "brussel|brussel|vub|banette|root||1||||||||||||||normal|",
-            "gent|gent|ugent|banette|root||1||||||||||||||normal|",
-            "vo1|vo1|ugent|banette|gent||1||||||||||||||normal|",
-            "vo2|vo2|ugent|banette|gent||1||||||||||||||normal|",
+            "gent|gent|gent|banette|root||1||||||||||||||normal|",
+            "vo1|vo1|gent|banette|gent||1||||||||||||||normal|",
+            "vo2|vo2|gent|banette|gent||1||||||||||||||normal|",
             "vo2|vo2|gvo00002|banette||someuser|1||||||||||||||normal|",
         ]
 
@@ -146,10 +146,10 @@ class SlurmSyncTestGent(TestCase):
 
         self.assertEqual(set(info), set([
             SlurmAccount(Account='brussel', Descr='brussel', Org='vub', Cluster='banette', Par_Name='root', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmAccount(Account='gent', Descr='gent', Org='ugent', Cluster='banette', Par_Name='root', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmAccount(Account='vo2', Descr='vo2', Org='ugent', Cluster='banette', Par_Name='gent', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmAccount(Account='gent', Descr='gent', Org='gent', Cluster='banette', Par_Name='root', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmAccount(Account='vo2', Descr='vo2', Org='gent', Cluster='banette', Par_Name='gent', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
             SlurmAccount(Account='antwerpen', Descr='antwerpen', Org='uantwerpen', Cluster='banette', Par_Name='root', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmAccount(Account='vo1', Descr='vo1', Org='ugent', Cluster='banette', Par_Name='gent', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS='')
+            SlurmAccount(Account='vo1', Descr='vo1', Org='gent', Cluster='banette', Par_Name='gent', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS='')
         ]))
 
         sacctmgr_user_output = [
