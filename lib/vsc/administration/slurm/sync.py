@@ -508,7 +508,7 @@ def slurm_project_users_account(project_members, active_accounts, slurm_user_inf
 
         #FIXME: users need a default account!
 
-        for (project_name, (members, project)) in project_members.items():
+        for (members, project_name) in project_members:
 
             # these are the current Slurm users for this project
             slurm_project_users = set([user for (user, acct) in cluster_users_acct if acct == project_name])

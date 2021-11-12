@@ -147,7 +147,7 @@ def main():
 
         projects = get_projects(opts.options.project_ini)
 
-        projects_members = dict([(p.name, (set(p.members), p)) for p in projects])  # TODO: verify enddates
+        projects_members = [(set(p.members), p.name) for p in projects]  # TODO: verify enddates
 
         # process projects
         sacctmgr_commands += slurm_project_accounts(projects, slurm_account_info, clusters)
