@@ -217,12 +217,39 @@ def create_add_user_command(user, vo_id, cluster):
     return CREATE_USER_COMMAND
 
 
+def create_default_account_command(user, account, cluster):
+    """Creates the command the set a default account for a user.
+
+    @param user: the user name in Slurm
+    @param accont: the account name in Slurm
+    @param cluster: cluster for which the user sets a default account
+    """
+    CREATE_DEFAULT_ACCOUNT_COMMAND = [
+        SLURM_SACCT_MGR,
+        "-i",
+        "modify",
+        "user",
+        "Name={0}".format(user),
+        "Cluster={0}".format(cluster),
+        "set",
+        "DefaultAccount={0}".format(account),
+    ]
+    logging.debug(
+        "Creating command to set default account to %s for %s on cluster %s",
+        account,
+        user,
+        cluster)
+
+    return CREATE_DEFAULT_ACCOUNT_COMMAND
+
+
 def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
     """Creates the commands to change a user's account.
 
     @returns: two lists comprising the commands
     """
     add_user_command = create_add_user_command(user, new_vo_id, cluster)
+    set_default_account_command = create_default_account_command(user, new_vo_id, cluster)
     REMOVE_ASSOCIATION_USER_COMMAND = [
         SLURM_SACCT_MGR,
         "-i",   # commit immediately
@@ -241,7 +268,7 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
         new_vo_id
         )
 
-    return [add_user_command, REMOVE_ASSOCIATION_USER_COMMAND]
+    return [add_user_command, set_default_account_command, REMOVE_ASSOCIATION_USER_COMMAND]
 
 
 def create_remove_user_command(user, cluster):
