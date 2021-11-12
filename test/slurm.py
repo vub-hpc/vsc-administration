@@ -68,7 +68,12 @@ class SlurmSyncTestGent(TestCase):
             Project(name="gpr_compute_project2"),
         ]
 
-        commands = slurm_project_accounts(projects, [], ["mycluster"])
+        SlurmAccount = namedtuple("SlurmAccount", ["Account", "Cluster", "Share"])
+        slurm_existing_projects = [
+            SlurmAccount(Account="gpr_compute_project2", Cluster="mycluster", Share="1"),
+        ]
+
+        commands = slurm_project_accounts(projects, slurm_existing_projects, ["mycluster"])
 
         self .assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
             shlex.split(
