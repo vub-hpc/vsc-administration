@@ -17,6 +17,7 @@ Functions to deploy users to slurm.
 """
 import logging
 
+from collections import defaultdict
 from enum import Enum
 
 from vsc.accountpage.wrappers import mkNamedTupleInstance
@@ -218,7 +219,7 @@ def create_change_account_fairshare_command(account, cluster, fairshare):
     return CHANGE_ACCOUNT_FAIRSHARE_COMMAND
 
 
-def create_add_user_command(user, vo_id, cluster):
+def create_add_user_command(user, account, cluster):
     """
     Creates the command to add the given account.
 
@@ -235,14 +236,14 @@ def create_add_user_command(user, vo_id, cluster):
         "add",
         "user",
         user,
-        "Account={0}".format(vo_id),
-        "DefaultAccount={0}".format(vo_id),
+        "Account={0}".format(account),
+        "DefaultAccount={0}".format(account),
         "Cluster={0}".format(cluster)
     ]
     logging.debug(
         "Adding command to add user %s with Account=%s Cluster=%s",
         user,
-        vo_id,
+        account,
         cluster,
         )
 
@@ -287,6 +288,7 @@ def create_remove_user_command(user, cluster):
         "delete",
         "user",
         "name={user}".format(user=user),
+        "where",
         "Cluster={cluster}".format(cluster=cluster)
     ]
     logging.debug(
@@ -296,6 +298,32 @@ def create_remove_user_command(user, cluster):
         )
 
     return REMOVE_USER_COMMAND
+
+
+def create_remove_user_account_command(user, account, cluster):
+    """Create the command to remove a user.
+
+    @returns: list comprising the command
+    """
+    REMOVE_USER_COMMAND = [
+        SLURM_SACCT_MGR,
+        "-i",   # commit immediately
+        "delete",
+        "user",
+        "name={user}".format(user=user),
+        "account={account}".format(account=account),
+        "where",
+        "Cluster={cluster}".format(cluster=cluster)
+    ]
+    logging.debug(
+        "Adding command to remove user %s with account %s from Cluster=%s",
+        user,
+        account,
+        cluster,
+        )
+
+    return REMOVE_USER_COMMAND
+
 
 
 def create_add_qos_command(name):
@@ -402,6 +430,9 @@ def slurm_modify_qos():
     # FIXME: this does not really belong here, since modifications will depend on the goal of the qos
     pass
 
+
+
+
 def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
     """Check for new/changed projects and create their accounts accordingly
 
@@ -459,6 +490,47 @@ def slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_insti
                 ))
 
             # TODO: create removal commands when VOs go inactive
+
+    return commands
+
+def slurm_project_users_account(project_members, active_accounts, slurm_user_info, clusters, dry_run=False):
+    """Check if the users are in the project account"""
+
+    commands = []
+
+    for cluster in clusters:
+        cluster_users_acct = [
+            (user.User, user.Acct) for user in slurm_user_info if user and user.Cluster == cluster
+        ]
+
+        new_users = set()
+        remove_project_users = set()
+
+        #FIXME: users need a default account!
+
+        for (project_name, (members, project)) in project_members.items():
+
+            # these are the current Slurm users for this project
+            slurm_project_users = set([user for (user, acct) in cluster_users_acct if acct == project_name])
+
+            # these users are not yet in the Slurm DBD for any project
+            new_users |= set([(user, project_name) for user in (members & active_accounts) - slurm_project_users])
+
+            # these are the Slurm users that should no longer be associated with the project
+            remove_project_users |= set([(user, project_name) for user in slurm_project_users - members])
+
+        logging.debug("%d new users", len(new_users))
+        logging.debug("%d removed users", len(remove_project_users))
+
+        commands.extend([create_add_user_command(
+            user=user,
+            account=project_name,
+            cluster=cluster) for (user, project_name) in new_users
+        ])
+        commands.extend([
+            create_remove_user_account_command(user=user, account=project_name, cluster=cluster)
+            for (user, project_name) in remove_project_users
+        ])
 
     return commands
 
@@ -528,7 +600,7 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
 
         commands.extend([create_add_user_command(
             user=user,
-            vo_id=vo_id,
+            account=vo_id,
             cluster=cluster) for (user, vo_id, _) in new_users
         ])
         commands.extend([create_remove_user_command(user=user, cluster=cluster) for user in remove_users])
