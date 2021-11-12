@@ -493,6 +493,7 @@ def slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_insti
 
     return commands
 
+
 def slurm_project_users_account(project_members, active_accounts, slurm_user_info, clusters, dry_run=False):
     """Check if the users are in the project account"""
 
