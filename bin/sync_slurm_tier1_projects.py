@@ -158,7 +158,6 @@ def main():
             active_accounts,  # active VSC accounts
             slurm_user_info,
             clusters,
-            opts.options.dry_run
         )
 
         logging.info("Executing %d commands", len(sacctmgr_commands))
