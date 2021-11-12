@@ -193,11 +193,21 @@ class SlurmSyncTestGent(TestCase):
         commands = slurm_user_accounts(vo_members, active_accounts, slurm_user_info, ["banette"])
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
+<<<<<<< HEAD
             shlex.split("/usr/bin/sacctmgr -i add user user6 Account=vo2 Cluster=banette DefaultAccount=vo2"),
             shlex.split("/usr/bin/sacctmgr -i delete user name=user2 where Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i add user user3 Account=vo1 Cluster=banette DefaultAccount=vo1"),
             shlex.split("/usr/bin/sacctmgr -i delete user name=user3 Account=vo2 where Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i add user user4 Account=vo2 Cluster=banette DefaultAccount=vo2"),
+=======
+            shlex.split("/usr/bin/sacctmgr -i add user user6 Account=vo2 DefaultAccount=vo2 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i delete user name=user2 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=vo1 DefaultAccount=vo1 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i modify user Name=user3 Cluster=banette set DefaultAccount=vo1"),
+            shlex.split("/usr/bin/sacctmgr -i delete user name=user3 Account=vo2 where Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i add user user4 Account=vo2 DefaultAccount=vo2 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i modify user Name=user4 Cluster=banette set DefaultAccount=vo2"),
+>>>>>>> 739b980 (test: add the default account commands)
             shlex.split("/usr/bin/sacctmgr -i delete user name=user4 Account=vo1 where Cluster=banette"),
         ]]))
 
