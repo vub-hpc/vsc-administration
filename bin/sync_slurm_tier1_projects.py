@@ -27,10 +27,9 @@ import sys
 from configparser import ConfigParser
 
 from vsc.accountpage.client import AccountpageClient
-from vsc.accountpage.wrappers import mkVo
 from vsc.administration.slurm.sync import get_slurm_acct_info, SyncTypes, SacctMgrException
-from vsc.administration.slurm.sync import slurm_institute_accounts, slurm_vo_accounts, slurm_user_accounts
-from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, INSTITUTE_VOS_BY_INSTITUTE, PRODUCTION, PILOT
+from vsc.administration.slurm.sync import slurm_project_accounts, slurm_project_users_accounts
+from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, PRODUCTION, PILOT
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
 from vsc.utils.run import RunNoShell
 from vsc.utils.script_tools import ExtendedSimpleOption
@@ -148,13 +147,13 @@ def main():
 
         projects = get_projects(opts.options.project_ini)
 
-        projects_members = dict([(p.name, (set(p.members), p)) for vo in projects])  # TODO: verify enddates
+        projects_members = dict([(p.name, (set(p.members), p)) for p in projects])  # TODO: verify enddates
 
         # process projects
         sacctmgr_commands += slurm_project_accounts(projects, slurm_account_info, clusters)
 
         # process project members
-        sacctmgr_commands += slurm_project_users_(
+        sacctmgr_commands += slurm_project_users_accounts(
             projects_members,
             active_accounts,  # active VSC accounts
             slurm_user_info,
