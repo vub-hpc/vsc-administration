@@ -33,7 +33,7 @@ from vsc.administration.slurm.sync import SyncTypes, SlurmAccount, SlurmUser
 VO = namedtuple("VO", ["vsc_id", "institute", "fairshare", "qos"])
 VO.__new__.__defaults__ = (None,) * len(VO._fields)
 
-Project = namedtuple("Project", ["name"])
+Project = namedtuple("Project", ["name", "members"])
 Project.__new__.__defaults__ = (None,) * len(Project._fields)
 
 
@@ -64,8 +64,8 @@ class SlurmSyncTestGent(TestCase):
         """Test that the commands to create accounts for projects are correctly generated."""
 
         projects = [
-            Project(name="gpr_compute_project1"),
-            Project(name="gpr_compute_project2"),
+            Project(name="gpr_compute_project1", members=[]),
+            Project(name="gpr_compute_project2", members=[]),
         ]
 
         SlurmAccount = namedtuple("SlurmAccount", ["Account", "Cluster", "Share"])
@@ -77,10 +77,27 @@ class SlurmSyncTestGent(TestCase):
 
         self .assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
             shlex.split(
-                "/usr/bin/sacctmgr -i add account {prname} Parent=projects Organization=gent Cluster=mycluster Qos={cluster}-{prname}".format(
+                "/usr/bin/sacctmgr -i add account {prname} Parent=projects Organization=ugent Cluster=mycluster Qos={cluster}-{prname}".format(
                     prname="gpr_compute_project1", cluster="mycluster"
                 )),
         ]])
+
+    def test_slurm_project_user_accounts(self):
+        project_members = {
+            "gpr_compute_project1": (set(["user1", "user2", "user3"]), VO(vsc_id="vo1", institute={"name": "gent"}, fairshare=1)),
+            "gpr_compute_project2": (set(["user4", "user5", "user6"]), VO(vsc_id="vo2", institute={"name": "gent"}, fairshare=1)),
+        }
+
+        active_accounts = set(["user1", "user3", "user4", "user5", "user6", "user7"])
+        slurm_user_info = [
+            SlurmUser(User='user1', Def_Acct='gpr_compute_project1', Admin='None', Cluster='banette', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user2', Def_Acct='gpr_compute_project1', Admin='None', Cluster='banette', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user3', Def_Acct='gpr_compute_project2', Admin='None', Cluster='banette', Account='gpr_compute_project2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user4', Def_Acct='gpr_compute_project1', Admin='None', Cluster='banette', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user5', Def_Acct='gpr_compute_project2', Admin='None', Cluster='banette', Account='gpr_compute_project2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+        ]
+
+        commands = slurm_user_accounts(project_members, active_accounts, slurm_user_info, ["banette"])
 
 
     def test_slurm_institute_accounts(self):
@@ -126,7 +143,7 @@ class SlurmSyncTestGent(TestCase):
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add user user6 Account=vo2 DefaultAccount=vo2 Cluster=banette"),
-            shlex.split("/usr/bin/sacctmgr -i delete user name=user2 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i delete user name=user2 where Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i add user user3 Account=vo1 DefaultAccount=vo1 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i delete user name=user3 Account=vo2 where Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i add user user4 Account=vo2 DefaultAccount=vo2 Cluster=banette"),
