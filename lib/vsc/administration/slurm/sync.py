@@ -17,7 +17,6 @@ Functions to deploy users to slurm.
 """
 import logging
 
-from collections import defaultdict
 from enum import Enum
 
 from vsc.accountpage.wrappers import mkNamedTupleInstance
