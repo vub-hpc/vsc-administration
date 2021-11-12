@@ -55,8 +55,8 @@ class SlurmSyncTestGent(TestCase):
         commands = slurm_vo_accounts(vos, [], ["mycluster"], 'gent')
 
         self.assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
-            shlex.split("/usr/bin/sacctmgr -i add account gvo00001 Parent=gent Organization=gent Cluster=mycluster Fairshare=10"),
-            shlex.split("/usr/bin/sacctmgr -i add account gvo00002 Parent=gent Organization=gent Cluster=mycluster Fairshare=20")
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00001 Parent=gent Organization=ugent Cluster=mycluster Fairshare=10"),
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00002 Parent=gent Organization=ugent Cluster=mycluster Fairshare=20")
         ]])
 
 
@@ -94,8 +94,8 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/sacctmgr -i add account gvo00017 Parent=antwerpen Organization=uantwerpen Cluster=mycluster Fairshare=30"),
             shlex.split("/usr/bin/sacctmgr -i add account brussel Parent=root Organization=vub Cluster=mycluster Fairshare=500"),
             shlex.split("/usr/bin/sacctmgr -i add account gvo00016 Parent=brussel Organization=vub Cluster=mycluster Fairshare=10"),
-            shlex.split("/usr/bin/sacctmgr -i add account gent Parent=root Organization=gent Cluster=mycluster Fairshare=8500"),
-            shlex.split("/usr/bin/sacctmgr -i add account gvo00012 Parent=gent Organization=gent Cluster=mycluster Fairshare=100"),
+            shlex.split("/usr/bin/sacctmgr -i add account gent Parent=root Organization=ugent Cluster=mycluster Fairshare=8500"),
+            shlex.split("/usr/bin/sacctmgr -i add account gvo00012 Parent=gent Organization=ugent Cluster=mycluster Fairshare=100"),
             shlex.split("/usr/bin/sacctmgr -i add account leuven Parent=root Organization=kuleuven Cluster=mycluster Fairshare=500"),
             shlex.split("/usr/bin/sacctmgr -i add account gvo00018 Parent=leuven Organization=kuleuven Cluster=mycluster Fairshare=20"),
         ]])
