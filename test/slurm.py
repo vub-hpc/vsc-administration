@@ -20,6 +20,7 @@ Tests for vsc.administration.slurm.*
 import shlex
 
 from collections import namedtuple
+from typing import DefaultDict
 
 from vsc.install.testing import TestCase
 
@@ -82,6 +83,13 @@ class SlurmSyncTestGent(TestCase):
                 )),
         ]])
 
+
+    def test_slurm_project_users_accounts(self):
+        """
+
+        """
+
+
     def test_slurm_project_user_accounts(self):
         project_members = {
             "gpr_compute_project1": (set(["user1", "user2", "user3"]), VO(vsc_id="vo1", institute={"name": "gent"}, fairshare=1)),
@@ -142,11 +150,11 @@ class SlurmSyncTestGent(TestCase):
         commands = slurm_user_accounts(vo_members, active_accounts, slurm_user_info, ["banette"])
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
-            shlex.split("/usr/bin/sacctmgr -i add user user6 Account=vo2 DefaultAccount=vo2 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i add user user6 Account=vo2 Cluster=banette DefaultAccount=vo2"),
             shlex.split("/usr/bin/sacctmgr -i delete user name=user2 where Cluster=banette"),
-            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=vo1 DefaultAccount=vo1 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=vo1 Cluster=banette DefaultAccount=vo1"),
             shlex.split("/usr/bin/sacctmgr -i delete user name=user3 Account=vo2 where Cluster=banette"),
-            shlex.split("/usr/bin/sacctmgr -i add user user4 Account=vo2 DefaultAccount=vo2 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i add user user4 Account=vo2 Cluster=banette DefaultAccount=vo2"),
             shlex.split("/usr/bin/sacctmgr -i delete user name=user4 Account=vo1 where Cluster=banette"),
         ]]))
 
