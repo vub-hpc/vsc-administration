@@ -218,7 +218,7 @@ def create_change_account_fairshare_command(account, cluster, fairshare):
     return CHANGE_ACCOUNT_FAIRSHARE_COMMAND
 
 
-def create_add_user_command(user, account, cluster):
+def create_add_user_command(user, account, cluster, default_account=None):
     """
     Creates the command to add the given account.
 
@@ -236,9 +236,12 @@ def create_add_user_command(user, account, cluster):
         "user",
         user,
         "Account={0}".format(account),
-        "DefaultAccount={0}".format(account),
         "Cluster={0}".format(cluster)
     ]
+    if default_account is not None:
+        CREATE_USER_COMMAND.append(
+            "DefaultAccount={0}".format(account),
+        )
     logging.debug(
         "Adding command to add user %s with Account=%s Cluster=%s",
         user,
@@ -299,6 +302,29 @@ def create_remove_user_command(user, cluster):
     return REMOVE_USER_COMMAND
 
 
+def create_remove_account_command(account, cluster):
+    """Create the command to remove an account.
+
+    @returns: list comprising the command
+    """
+    REMOVE_ACCOUNT_COMMAND = [
+        SLURM_SACCT_MGR,
+        "-i",
+        "delete",
+        "account",
+        "Name={account}".format(account=account),
+        "Cluster={cluster}".format(cluster=cluster),
+    ]
+
+    logging.debug(
+        "Adding command to remove account %s from cluster %s",
+        account,
+        cluster,
+    )
+
+    return REMOVE_ACCOUNT_COMMAND
+
+
 def create_remove_user_account_command(user, account, cluster):
     """Create the command to remove a user.
 
@@ -322,7 +348,6 @@ def create_remove_user_account_command(user, account, cluster):
         )
 
     return REMOVE_USER_COMMAND
-
 
 
 def create_add_qos_command(name):
@@ -430,8 +455,6 @@ def slurm_modify_qos():
     pass
 
 
-
-
 def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
     """Check for new/changed projects and create their accounts accordingly
 
@@ -439,21 +462,32 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
     """
     commands = []
     for cluster in clusters:
-        cluster_accounts = get_cluster_accounts(slurm_account_info, cluster)
+        cluster_accounts = set(get_cluster_accounts(slurm_account_info, cluster).keys())
 
-        for project in resource_app_projects:
-            if project.name not in cluster_accounts:
+        resource_app_project_names = set([p.name for p in resource_app_projects])
+
+        for project_name in resource_app_project_names - cluster_accounts:
+            if project_name not in cluster_accounts:
+                # TODO: Add the QoS commands
                 commands.append(create_add_account_command(
-                    account=project.name,
+                    account=project_name,
                     parent="projects",  # in case we want to deploy on Tier-2 as well
                     cluster=cluster,
                     organisation=GENT,   # tier-1 projects run here :p
-                    qos="{0}-{1}".format(cluster, project.name),  # QOS is not attached to a cluster
+                    qos="{0}-{1}".format(cluster, project_name),  # QOS is not attached to a cluster
                 ))
 
-        #TODO: delete obsolete projects
+        for project_name in cluster_accounts - resource_app_project_names:
+            if not project_name.startswith('gpr_compute'):
+                continue  # in case we have manual projects we do not want removed
+
+            # TODO: remove QoS if needed
+            commands.append(create_remove_account_command(
+                account=project_name,
+                cluster=cluster))
 
     return commands
+
 
 def slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_institute):
     """Check for the presence of the new/changed VOs in the slurm account list.
@@ -494,7 +528,17 @@ def slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_insti
 
 
 def slurm_project_users_accounts(project_members, active_accounts, slurm_user_info, clusters):
-    """Check if the users are in the project account"""
+    """Check if the users are in the project account.
+
+    For users in the project:
+    If the user does not exist on the system, he is added to the project with the project as the default account.
+    Otherwise, a new association is created for this user and the project. The users' default account remains with
+    the oldest project a user has. (TODO)
+
+    For users who left the project:
+    The user's association is removed. We need to check if this is the last instance for this user. If not, they
+    should get a new default account. (TODO)
+    """
 
     commands = []
 
@@ -506,7 +550,7 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
         new_users = set()
         remove_project_users = set()
 
-        #FIXME: users need a default account!
+        # No default accounts!
 
         for (members, project_name) in project_members:
 
@@ -531,6 +575,8 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
             create_remove_user_account_command(user=user, account=project_name, cluster=cluster)
             for (user, project_name) in remove_project_users
         ])
+
+        #TODO: Add the QoS commands
 
     return commands
 
@@ -601,7 +647,8 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
         commands.extend([create_add_user_command(
             user=user,
             account=vo_id,
-            cluster=cluster) for (user, vo_id, _) in new_users
+            cluster=cluster,
+            default_account=vo_id) for (user, vo_id, _) in new_users
         ])
         commands.extend([create_remove_user_command(user=user, cluster=cluster) for user in remove_users])
 
