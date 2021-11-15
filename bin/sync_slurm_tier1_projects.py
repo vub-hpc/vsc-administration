@@ -14,7 +14,7 @@
 # All rights reserved.
 #
 """
-This script synchronises the users and VO's from the HPC account page to the Slurm database.
+This script synchronises the users and projects from the Resource App to the Slurm database.
 
 The script must result in an idempotent execution, to ensure nothing breaks.
 """
@@ -27,8 +27,11 @@ import sys
 from configparser import ConfigParser
 
 from vsc.accountpage.client import AccountpageClient
-from vsc.administration.slurm.sync import get_slurm_acct_info, SyncTypes, SacctMgrException
-from vsc.administration.slurm.sync import slurm_project_accounts, slurm_project_users_accounts
+from vsc.administration.slurm.sync import (
+    get_slurm_acct_info, SyncTypes, SacctMgrException,
+    slurm_project_accounts, slurm_project_users_accounts,
+    slurm_project_qos, get_slurm_qos_info
+)
 from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, PRODUCTION, PILOT
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
 from vsc.utils.run import RunNoShell
@@ -54,7 +57,7 @@ def execute_commands(commands):
             raise SacctMgrException("Command failed: {0}".format(command))
 
 
-ProjectIniConfig = namedtuple("ProjectIniConfig", ["name", "end_date", "members"])
+ProjectIniConfig = namedtuple("ProjectIniConfig", ["name", "end_date", "members", "moderators"])
 
 def get_projects(projects_ini):
     """
@@ -76,10 +79,15 @@ def get_projects(projects_ini):
         projects.append(ProjectIniConfig(
             name=section,
             end_date=projects_config.get(section, "end_date"),
-            members=projects_config.get("gpr_compute_testproject1", "members").split(",")
+            members=[m.strip() for m in projects_config.get(section, "members").split(",")],
+            moderators=[m.strip() for m in projects_config.get(section, "moderators").split(",")]
         ))
 
     return projects
+
+
+def sync_projects_to_ap(projects):
+    pass
 
 
 def main():
@@ -124,11 +132,15 @@ def main():
     logging.info("Using startime %s", start_time)
 
     try:
+        projects = get_projects(opts.options.project_ini)
+        projects_members = [(set(p.members), p.name) for p in projects]  # TODO: verify enddates
+
         client = AccountpageClient(token=opts.options.access_token, url=opts.options.account_page_url + "/api/")
         host_institute = opts.options.host_institute
 
         slurm_account_info = get_slurm_acct_info(SyncTypes.accounts)
         slurm_user_info = get_slurm_acct_info(SyncTypes.users)
+        slurm_qos_info = get_slurm_qos_info()
 
         # The projects do not track active state of users, so we need to fetch all accounts as well
         active_accounts = set([a["vsc_id"] for a in client.account.get()[1] if a["isactive"]])
@@ -143,13 +155,18 @@ def main():
                 for p in opts.options.cluster_classes
                 for cs in VSC_SLURM_CLUSTERS[host_institute][p]
             ]
+
         sacctmgr_commands = []
 
-        projects = get_projects(opts.options.project_ini)
-
-        projects_members = [(set(p.members), p.name) for p in projects]  # TODO: verify enddates
+        # create groups in the AP and set the sources for the
+        # FIXME: group creation should be done by the RA itself at some point
+        # or should be done from vsc-project?
+        sync_projects_to_ap(projects)
 
         # process projects
+        # add the QoS
+        sacctmgr_commands += slurm_project_qos(projects, slurm_qos_info, clusters)
+
         sacctmgr_commands += slurm_project_accounts(projects, slurm_account_info, clusters)
 
         # process project members

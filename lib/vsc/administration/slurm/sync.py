@@ -159,6 +159,16 @@ def get_slurm_acct_info(info_type):
     return info
 
 
+def parse_slurm_qos_dump(lines):
+
+    return []
+
+def get_slurm_qos_info():
+
+    info = parse_slurm_qos_dump([])
+
+    return info
+
 def create_add_account_command(account, parent, organisation, cluster, fairshare=None, qos=None):
     """
     Creates the command to add the given account.
@@ -358,8 +368,8 @@ def create_add_qos_command(name):
     ADD_QOS_COMMAND = [
         SLURM_SACCT_MGR,
         "-i",
-        "add"
-        "qos"
+        "add",
+        "qos",
         "name={0}".format(name)
     ]
 
@@ -448,6 +458,8 @@ def slurm_project_qos(resource_app_projects, slurm_qos_info, clusters):
             qos_name = "{0}-{1}".format(cluster, project.name)
             if qos_name not in cluster_qos:
                 commands.append(create_add_qos_command(qos_name))
+
+    return commands
 
 
 def slurm_modify_qos():
@@ -544,7 +556,7 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
 
     for cluster in clusters:
         cluster_users_acct = [
-            (user.User, user.Acct) for user in slurm_user_info if user and user.Cluster == cluster
+            (user.User, user.Account) for user in slurm_user_info if user and user.Cluster == cluster
         ]
 
         new_users = set()
