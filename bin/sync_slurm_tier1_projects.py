@@ -30,7 +30,7 @@ from vsc.accountpage.client import AccountpageClient
 from vsc.administration.slurm.sync import (
     get_slurm_acct_info, SyncTypes, SacctMgrException,
     slurm_project_accounts, slurm_project_users_accounts,
-    slurm_project_qos, get_slurm_qos_info
+    slurm_project_qos
 )
 from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, PRODUCTION, PILOT
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
@@ -57,7 +57,7 @@ def execute_commands(commands):
             raise SacctMgrException("Command failed: {0}".format(command))
 
 
-ProjectIniConfig = namedtuple("ProjectIniConfig", ["name", "end_date", "members", "moderators"])
+ProjectIniConfig = namedtuple("ProjectIniConfig", ["name", "end_date", "members", "moderators", "cpu_hours", "gpu_hours"])
 
 def get_projects(projects_ini):
     """
@@ -80,7 +80,9 @@ def get_projects(projects_ini):
             name=section,
             end_date=projects_config.get(section, "end_date"),
             members=[m.strip() for m in projects_config.get(section, "members").split(",")],
-            moderators=[m.strip() for m in projects_config.get(section, "moderators").split(",")]
+            moderators=[m.strip() for m in projects_config.get(section, "moderators").split(",")],
+            cpu_hours=projects_config.get(section, "CPUhours", fallback=0),
+            gpu_hours=projects_config.get(section, "GPUhours", fallback=0),
         ))
 
     return projects
@@ -138,9 +140,10 @@ def main():
         client = AccountpageClient(token=opts.options.access_token, url=opts.options.account_page_url + "/api/")
         host_institute = opts.options.host_institute
 
+        # fetch slurm dbd information on accounts (projects), users and qos
         slurm_account_info = get_slurm_acct_info(SyncTypes.accounts)
         slurm_user_info = get_slurm_acct_info(SyncTypes.users)
-        slurm_qos_info = get_slurm_qos_info()
+        slurm_qos_info = get_slurm_acct_info(SyncTypes.qos)
 
         # The projects do not track active state of users, so we need to fetch all accounts as well
         active_accounts = set([a["vsc_id"] for a in client.account.get()[1] if a["isactive"]])

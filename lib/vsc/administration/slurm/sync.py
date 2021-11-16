@@ -123,7 +123,10 @@ def parse_slurm_acct_dump(lines, info_type):
     acct_info = set()
 
     header = [w.replace(' ', '_') for w in lines[0].rstrip().split("|")]
-    user_field_number = [h.lower() for h in header].index("user")
+    try:
+        user_field_number = [h.lower() for h in header].index("user")
+    except ValueError:
+        user_field_number = None
 
     for line in lines[1:]:
         line = line.rstrip()
@@ -158,16 +161,6 @@ def get_slurm_acct_info(info_type):
 
     return info
 
-
-def parse_slurm_qos_dump(lines):
-
-    return []
-
-def get_slurm_qos_info():
-
-    info = parse_slurm_qos_dump([])
-
-    return info
 
 def create_add_account_command(account, parent, organisation, cluster, fairshare=None, qos=None):
     """
@@ -375,6 +368,24 @@ def create_add_qos_command(name):
 
     return ADD_QOS_COMMAND
 
+def create_remove_qos_command(name):
+    """Create the command to remove a QOS.
+
+    @param name: the name of the QOS to remove
+
+    @returns: the list comprising the command
+    """
+    REMOVE_QOS_COMMAND = [
+        SLURM_SACCT_MGR,
+        "-i",
+        "remove",
+        "qos",
+        "where",
+        "name={0}".format(name),
+    ]
+
+    return REMOVE_QOS_COMMAND
+
 
 def create_modify_qos_command(name, settings):
     """Create the command to modify a QOS
@@ -390,7 +401,9 @@ def create_modify_qos_command(name, settings):
         "modify",
         "qos",
         name,
-        "set"
+        "set",
+        "NoDecay",
+        "DenyOnLimit",
     ]
 
     for k, v in settings:
@@ -434,7 +447,6 @@ def slurm_institute_accounts(slurm_account_info, clusters, host_institute, insti
 
 
 def get_cluster_accounts(slurm_account_info, cluster):
-    # FIXME: also add the QoS
     return dict([
             (acct.Account, int(acct.Share))
             for acct in slurm_account_info
@@ -445,19 +457,30 @@ def get_cluster_accounts(slurm_account_info, cluster):
 def get_cluster_qos(slurm_qos_info, cluster):
     """Returns a list of QOS names related to the given cluster"""
 
-    return [qi.name for qi in slurm_qos_info if qi.name.startswith(cluster)]
+    return [qi.Name for qi in slurm_qos_info if qi.Name.startswith(cluster)]
 
 
-def slurm_project_qos(resource_app_projects, slurm_qos_info, clusters):
+def slurm_project_qos(projects, slurm_qos_info, clusters):
     """Check for new/changed projects and set their QOS accordingly"""
     commands = []
     for cluster in clusters:
-        cluster_qos = get_cluster_qos(slurm_qos_info, cluster)
+        cluster_qos_names = set(get_cluster_qos(slurm_qos_info, cluster))
+        project_qos_names = set([
+            "{cluster}-{project_name}".format(cluster=cluster, project_name=p.name) for p in projects
+        ])
 
-        for project in resource_app_projects:
+        for project in projects:
             qos_name = "{0}-{1}".format(cluster, project.name)
-            if qos_name not in cluster_qos:
+            if qos_name not in cluster_qos_names:
                 commands.append(create_add_qos_command(qos_name))
+                commands.append(create_modify_qos_command(qos_name, {
+                    "GRPTRESMins": "cpu={cpuminutes},gpu={gpuminutes}".format(
+                        cpuhours=60*project.cpu_hours,
+                        gpuhours=60*project.gpu_hours)
+                    }))
+
+        for qos_name in cluster_qos_names - project_qos_names:
+            commands.append(create_remove_qos_command(qos_name))
 
     return commands
 
@@ -471,6 +494,8 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
     """Check for new/changed projects and create their accounts accordingly
 
     XXX: The project name is the same as the group name in the AP that corresponds to the project.
+
+    We assume that the QOS has already been created
     """
     commands = []
     for cluster in clusters:
@@ -480,7 +505,6 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
 
         for project_name in resource_app_project_names - cluster_accounts:
             if project_name not in cluster_accounts:
-                # TODO: Add the QoS commands
                 commands.append(create_add_account_command(
                     account=project_name,
                     parent="projects",  # in case we want to deploy on Tier-2 as well
@@ -493,7 +517,6 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
             if not project_name.startswith('gpr_compute'):
                 continue  # in case we have manual projects we do not want removed
 
-            # TODO: remove QoS if needed
             commands.append(create_remove_account_command(
                 account=project_name,
                 cluster=cluster))
