@@ -112,7 +112,8 @@ class SlurmSyncTestGent(TestCase):
         commands = slurm_project_accounts(resource_app_projects, slurm_account_info, ["mycluster"])
 
         self.assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
-
+            shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project3 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project3"),
+            shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project4 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project4"),
         ]])
 
 
