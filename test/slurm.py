@@ -17,7 +17,6 @@ Tests for vsc.administration.slurm.*
 
 @author: Andy Georges (Ghent University)
 """
-from re import A
 import shlex
 
 from collections import namedtuple
@@ -58,29 +57,6 @@ class SlurmSyncTestGent(TestCase):
         self.assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add account gvo00001 Parent=gent Organization=ugent Cluster=mycluster Fairshare=10"),
             shlex.split("/usr/bin/sacctmgr -i add account gvo00002 Parent=gent Organization=ugent Cluster=mycluster Fairshare=20")
-        ]])
-
-
-    def test_slurm_project_accounts(self):
-        """Test that the commands to create accounts for projects are correctly generated."""
-
-        projects = [
-            Project(name="gpr_compute_project1", members=[]),
-            Project(name="gpr_compute_project2", members=[]),
-        ]
-
-        SlurmAccount = namedtuple("SlurmAccount", ["Account", "Cluster", "Share"])
-        slurm_existing_projects = [
-            SlurmAccount(Account="gpr_compute_project2", Cluster="mycluster", Share="1"),
-        ]
-
-        commands = slurm_project_accounts(projects, slurm_existing_projects, ["mycluster"])
-
-        self .assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
-            shlex.split(
-                "/usr/bin/sacctmgr -i add account {prname} Parent=projects Organization=ugent Cluster=mycluster Qos={cluster}-{prname}".format(
-                    prname="gpr_compute_project1", cluster="mycluster"
-                )),
         ]])
 
 
