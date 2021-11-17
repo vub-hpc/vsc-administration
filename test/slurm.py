@@ -21,7 +21,6 @@ from re import A
 import shlex
 
 from collections import namedtuple
-from typing import DefaultDict
 
 from vsc.install.testing import TestCase
 
