@@ -123,8 +123,7 @@ class SlurmSyncTestGent(TestCase):
         project_members = {
             "gpr_compute_project1": (set(["user1", "user2", "user3"]), VO(vsc_id="vo1", institute={"name": "gent"}, fairshare=1)),
             "gpr_compute_project2": (set(["user4", "user5", "user6"]), VO(vsc_id="vo2", institute={"name": "gent"}, fairshare=1)),
-
-        active_projects = set((), ())
+        }
 
 
 
