@@ -475,8 +475,8 @@ def slurm_project_qos(projects, slurm_qos_info, clusters):
                 commands.append(create_add_qos_command(qos_name))
                 commands.append(create_modify_qos_command(qos_name, {
                     "GRPTRESMins": "cpu={cpuminutes},gpu={gpuminutes}".format(
-                        cpuhours=60*project.cpu_hours,
-                        gpuhours=60*project.gpu_hours)
+                        cpuminutes=60*project.cpu_hours,
+                        gpuminutes=60*project.gpu_hours)
                     }))
 
         for qos_name in cluster_qos_names - project_qos_names:
