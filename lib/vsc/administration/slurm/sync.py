@@ -255,12 +255,12 @@ def create_add_user_command(user, account, cluster, default_account=None):
     return CREATE_USER_COMMAND
 
 
-def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
+def create_change_user_command(user, current_vo_id, new_vo_id, cluster, default_account=None):
     """Creates the commands to change a user's account.
 
     @returns: two lists comprising the commands
     """
-    add_user_command = create_add_user_command(user, new_vo_id, cluster)
+    add_user_command = create_add_user_command(user, new_vo_id, cluster, default_account)
     REMOVE_ASSOCIATION_USER_COMMAND = [
         SLURM_SACCT_MGR,
         "-i",   # commit immediately
@@ -486,7 +486,6 @@ def slurm_project_qos(projects, slurm_qos_info, clusters):
 
 
 def slurm_modify_qos():
-    # FIXME: this does not really belong here, since modifications will depend on the goal of the qos
     pass
 
 
@@ -695,7 +694,8 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
             user=user,
             current_vo_id=current_vo_id,
             new_vo_id=new_vo_id,
-            cluster=cluster) for (user, current_vo_id, (new_vo_id, _)) in moved_users])
+            cluster=cluster,
+            default_account=new_vo_id) for (user, current_vo_id, (new_vo_id, _)) in moved_users])
         )
 
     return commands
