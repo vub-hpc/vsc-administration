@@ -25,7 +25,7 @@ from vsc.install.testing import TestCase
 
 from vsc.administration.slurm.sync import (
     slurm_vo_accounts, slurm_user_accounts, parse_slurm_acct_dump,
-    slurm_institute_accounts, slurm_project_accounts,
+    slurm_institute_accounts, slurm_project_accounts, slurm_project_users_accounts
 )
 from vsc.administration.slurm.sync import SyncTypes, SlurmAccount, SlurmUser
 
@@ -106,21 +106,29 @@ class SlurmSyncTestGent(TestCase):
 
 
     def test_slurm_project_user_accounts(self):
-        project_members = {
-            "gpr_compute_project1": (set(["user1", "user2", "user3"]), VO(vsc_id="vo1", institute={"name": "gent"}, fairshare=1)),
-            "gpr_compute_project2": (set(["user4", "user5", "user6"]), VO(vsc_id="vo2", institute={"name": "gent"}, fairshare=1)),
-        }
+        project_members = [
+            (set(["user1", "user2", "user3"]), "gpr_compute_project1"),
+            (set(["user4", "user5", "user6"]), "gpr_compute_project2"),
+        ]
 
         active_accounts = set(["user1", "user3", "user4", "user5", "user6", "user7"])
         slurm_user_info = [
-            SlurmUser(User='user1', Def_Acct='gpr_compute_project1', Admin='None', Cluster='banette', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmUser(User='user2', Def_Acct='gpr_compute_project1', Admin='None', Cluster='banette', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmUser(User='user3', Def_Acct='gpr_compute_project2', Admin='None', Cluster='banette', Account='gpr_compute_project2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmUser(User='user4', Def_Acct='gpr_compute_project1', Admin='None', Cluster='banette', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmUser(User='user5', Def_Acct='gpr_compute_project2', Admin='None', Cluster='banette', Account='gpr_compute_project2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user1', Def_Acct='gpr_compute_project1', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user2', Def_Acct='gpr_compute_project1', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user4', Def_Acct='gpr_compute_project1', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user3', Def_Acct='gpr_compute_project2', Admin='None', Cluster='mycluster', Account='gpr_compute_project2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user5', Def_Acct='gpr_compute_project2', Admin='None', Cluster='mycluster', Account='gpr_compute_project2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
         ]
 
-        commands = slurm_user_accounts(project_members, active_accounts, slurm_user_info, ["banette"])
+        commands = slurm_project_users_accounts(project_members, active_accounts, slurm_user_info, ["mycluster"])
+
+        self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
+            shlex.split("/usr/bin/sacctmgr -i add user user4 Account=gpr_compute_project2 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i add user user6 Account=gpr_compute_project2 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=gpr_compute_project1 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i delete user Name=user3 Account=gpr_compute_project2 where Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i delete user Name=user4 Account=gpr_compute_project1 where Cluster=mycluster"),
+        ]]))
 
 
     def test_slurm_institute_accounts(self):

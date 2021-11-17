@@ -338,8 +338,8 @@ def create_remove_user_account_command(user, account, cluster):
         "-i",   # commit immediately
         "delete",
         "user",
-        "name={user}".format(user=user),
-        "account={account}".format(account=account),
+        "Name={user}".format(user=user),
+        "Account={account}".format(account=account),
         "where",
         "Cluster={cluster}".format(cluster=cluster)
     ]
@@ -363,7 +363,7 @@ def create_add_qos_command(name):
         "-i",
         "add",
         "qos",
-        "name={0}".format(name)
+        "Name={0}".format(name)
     ]
 
     return ADD_QOS_COMMAND
@@ -381,7 +381,7 @@ def create_remove_qos_command(name):
         "remove",
         "qos",
         "where",
-        "name={0}".format(name),
+        "Name={0}".format(name),
     ]
 
     return REMOVE_QOS_COMMAND
