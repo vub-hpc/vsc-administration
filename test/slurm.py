@@ -99,14 +99,14 @@ class SlurmSyncTestGent(TestCase):
             RAP(name="gpr_compute_project4"),
         ]
 
-        SAI = namedtuple("SAI", ["Account", "Share"])
+        SAI = namedtuple("SAI", ["Account", "Share", "Cluster"])
 
         slurm_account_info = [
-            SAI(Account="gpr_compute_project1", Share=1),
-            SAI(Account="gpr_compute_project2", Share=1),
-            SAI(Account="gpr_compute_project5", Share=1),
-            SAI(Account="gpr_compute_project6", Share=1),
-            SAI(Account="some_project", Share=1),
+            SAI(Account="gpr_compute_project1", Share=1, Cluster="mycluster"),
+            SAI(Account="gpr_compute_project2", Share=1, Cluster="mycluster"),
+            SAI(Account="gpr_compute_project5", Share=1, Cluster="mycluster"),
+            SAI(Account="gpr_compute_project6", Share=1, Cluster="other_cluster"),
+            SAI(Account="some_project", Share=1, Cluster="mycluster"),
         ]
 
         commands = slurm_project_accounts(resource_app_projects, slurm_account_info, ["mycluster"])
