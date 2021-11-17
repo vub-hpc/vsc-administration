@@ -57,7 +57,9 @@ def execute_commands(commands):
             raise SacctMgrException("Command failed: {0}".format(command))
 
 
-ProjectIniConfig = namedtuple("ProjectIniConfig", ["name", "end_date", "members", "moderators", "cpu_hours", "gpu_hours"])
+ProjectIniConfig = namedtuple("ProjectIniConfig",
+    ["name", "end_date", "members", "moderators", "cpu_hours", "gpu_hours"]
+)
 
 def get_projects(projects_ini):
     """
@@ -89,7 +91,7 @@ def get_projects(projects_ini):
 
 
 def sync_projects_to_ap(projects):
-    pass
+    logging.debug("Should sync %s to the AP", projects)
 
 
 def main():
