@@ -17,6 +17,7 @@ Tests for vsc.administration.slurm.*
 
 @author: Andy Georges (Ghent University)
 """
+from re import A
 import shlex
 
 from collections import namedtuple
@@ -84,10 +85,48 @@ class SlurmSyncTestGent(TestCase):
         ]])
 
 
+    def test_slurm_project_accounts(self):
+        """
+        Test the creation of command required to sync projects with slurm accounts.
+        """
+
+        RAP = namedtuple("RAP", ["name"])
+
+        resource_app_projects = [
+            RAP(name="gpr_compute_project1"),
+            RAP(name="gpr_compute_project2"),
+            RAP(name="gpr_compute_project3"),
+            RAP(name="gpr_compute_project4"),
+        ]
+
+        SAI = namedtuple("SAI", ["Account", "Share"])
+
+        slurm_account_info = [
+            SAI(Account="gpr_compute_project1", Share=1),
+            SAI(Account="gpr_compute_project2", Share=1),
+            SAI(Account="gpr_compute_project5", Share=1),
+            SAI(Account="gpr_compute_project6", Share=1),
+            SAI(Account="some_project", Share=1),
+        ]
+
+        commands = slurm_project_accounts(resource_app_projects, slurm_account_info, ["mycluster"])
+
+        self.assertEqual([tuple(x) for x in commands], [tuple(x) for x in [
+
+        ]])
+
+
     def test_slurm_project_users_accounts(self):
         """
 
         """
+        project_members = {
+            "gpr_compute_project1": (set(["user1", "user2", "user3"]), VO(vsc_id="vo1", institute={"name": "gent"}, fairshare=1)),
+            "gpr_compute_project2": (set(["user4", "user5", "user6"]), VO(vsc_id="vo2", institute={"name": "gent"}, fairshare=1)),
+
+        active_projects = set((), ())
+
+
 
 
     def test_slurm_project_user_accounts(self):
