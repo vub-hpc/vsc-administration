@@ -90,17 +90,6 @@ def get_projects(projects_ini):
     return projects
 
 
-def sync_projects_to_ap(client, projects):
-    """
-    Sync the project groups to the AP.
-
-    This uses the RA group API
-        /api/
-    """
-
-    logging.debug("Should sync %s to the AP", projects)
-
-
 def main():
     """
     Main script. The usual.
@@ -171,9 +160,7 @@ def main():
         sacctmgr_commands = []
 
         # create groups in the AP and set the sources for the
-        # FIXME: group creation should be done by the RA itself at some point
-        # or should be done from vsc-project?
-        sync_projects_to_ap(client, projects)
+        # is done in another script
 
         # process projects
         # add the QoS
