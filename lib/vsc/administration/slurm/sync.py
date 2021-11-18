@@ -402,8 +402,7 @@ def create_modify_qos_command(name, settings):
         "qos",
         name,
         "set",
-        "NoDecay",
-        "DenyOnLimit",
+        "flags=NoDecay,DenyOnLimit",
     ]
 
     for k, v in settings.items():
