@@ -83,14 +83,21 @@ def get_projects(projects_ini):
             end_date=projects_config.get(section, "end_date"),
             members=[m.strip() for m in projects_config.get(section, "members").split(",")],
             moderators=[m.strip() for m in projects_config.get(section, "moderators").split(",")],
-            cpu_hours=projects_config.get(section, "CPUhours", fallback=0),
-            gpu_hours=projects_config.get(section, "GPUhours", fallback=0),
+            cpu_hours=int(projects_config.get(section, "CPUhours", fallback=0)),
+            gpu_hours=int(projects_config.get(section, "GPUhours", fallback=0)),
         ))
 
     return projects
 
 
-def sync_projects_to_ap(projects):
+def sync_projects_to_ap(client, projects):
+    """
+    Sync the project groups to the AP.
+
+    This uses the RA group API
+        /api/
+    """
+
     logging.debug("Should sync %s to the AP", projects)
 
 
@@ -166,7 +173,7 @@ def main():
         # create groups in the AP and set the sources for the
         # FIXME: group creation should be done by the RA itself at some point
         # or should be done from vsc-project?
-        sync_projects_to_ap(projects)
+        sync_projects_to_ap(client, projects)
 
         # process projects
         # add the QoS
