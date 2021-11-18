@@ -25,9 +25,10 @@ from vsc.install.testing import TestCase
 
 from vsc.administration.slurm.sync import (
     slurm_vo_accounts, slurm_user_accounts, parse_slurm_acct_dump,
-    slurm_institute_accounts, slurm_project_accounts, slurm_project_users_accounts
+    slurm_institute_accounts, slurm_project_accounts, slurm_project_users_accounts,
+    slurm_project_qos,
+    SyncTypes, SlurmAccount, SlurmUser
 )
-from vsc.administration.slurm.sync import SyncTypes, SlurmAccount, SlurmUser
 
 
 VO = namedtuple("VO", ["vsc_id", "institute", "fairshare", "qos"])
@@ -103,6 +104,32 @@ class SlurmSyncTestGent(TestCase):
         }
 
 
+    def test_slurm_project_qos(self):
+
+        PR = namedtuple("PR", ["name", "cpu_hours", "gpu_hours"])
+
+        projects = [
+            PR(name="gpr_compute_project1", cpu_hours=2, gpu_hours=3),
+            PR(name="gpr_compute_project2", cpu_hours=5, gpu_hours=0),
+            PR(name="gpr_compute_project3", cpu_hours=4, gpu_hours=0),
+        ]
+        SQI = namedtuple("SQI", ["Name"])
+
+        slurm_qos_info = [
+            SQI(Name="mycluster-gpr_compute_project3"),
+            SQI(Name="mycluster-gpr_compute_project4"),
+            SQI(Name="other-cluster-some-project"),
+        ]
+
+        commands = slurm_project_qos(projects, slurm_qos_info, ["mycluster"])
+
+        self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
+            shlex.split("/usr/bin/sacctmgr -i add qos Name=mycluster-gpr_compute_project1"),
+            shlex.split("/usr/bin/sacctmgr -i add qos Name=mycluster-gpr_compute_project2"),
+            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project1 set NoDecay DenyOnLimit GRPTRESMins=cpu=120,gpu=180"),
+            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project2 set NoDecay DenyOnLimit GRPTRESMins=cpu=300,gpu=0"),
+            shlex.split("/usr/bin/sacctmgr -i remove qos where Name=mycluster-gpr_compute_project4"),
+        ]]))
 
 
     def test_slurm_project_user_accounts(self):

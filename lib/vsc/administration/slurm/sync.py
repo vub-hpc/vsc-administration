@@ -406,7 +406,7 @@ def create_modify_qos_command(name, settings):
         "DenyOnLimit",
     ]
 
-    for k, v in settings:
+    for k, v in settings.items():
         MODIFY_QOS_COMMAND.append("{0}={1}".format(k, v))
 
     return MODIFY_QOS_COMMAND
@@ -478,6 +478,8 @@ def slurm_project_qos(projects, slurm_qos_info, clusters):
                         cpuminutes=60*project.cpu_hours,
                         gpuminutes=60*project.gpu_hours)
                     }))
+
+            # TODO: if we pass a cutoff date, we need to alter the hours if less was spent
 
         for qos_name in cluster_qos_names - project_qos_names:
             commands.append(create_remove_qos_command(qos_name))
