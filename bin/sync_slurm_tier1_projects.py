@@ -38,7 +38,7 @@ from vsc.utils.run import RunNoShell
 from vsc.utils.script_tools import ExtendedSimpleOption
 from vsc.utils.timestamp import convert_timestamp, write_timestamp, retrieve_timestamp_with_default
 
-NAGIOS_HEADER = "sync_slurm_acct"
+NAGIOS_HEADER = "sync_slurm_tier1_projects"
 NAGIOS_CHECK_INTERVAL_THRESHOLD = 60 * 60  # 60 minutes
 
 SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
@@ -78,8 +78,11 @@ def get_projects(projects_ini):
     projects = []
 
     for section in projects_config.sections():
+        if not section.startswith('gpr_compute'):
+            continue
+
         projects.append(ProjectIniConfig(
-            name=section,
+            name=section.replace("gpr_compute_", ""),
             end_date=projects_config.get(section, "end_date"),
             members=[m.strip() for m in projects_config.get(section, "members").split(",")],
             moderators=[m.strip() for m in projects_config.get(section, "moderators").split(",")],
