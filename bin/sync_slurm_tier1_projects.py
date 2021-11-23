@@ -58,7 +58,7 @@ def execute_commands(commands):
 
 
 ProjectIniConfig = namedtuple("ProjectIniConfig",
-    ["name", "end_date", "members", "moderators", "cpu_hours", "gpu_hours"]
+    ["name", "group", "end_date", "members", "cpu_hours", "gpu_hours"]
 )
 
 def get_projects(projects_ini):
@@ -83,14 +83,21 @@ def get_projects(projects_ini):
 
         projects.append(ProjectIniConfig(
             name=section.replace("gpr_compute_", ""),
+            group=section,
             end_date=projects_config.get(section, "end_date"),
             members=[m.strip() for m in projects_config.get(section, "members").split(",")],
-            moderators=[m.strip() for m in projects_config.get(section, "moderators").split(",")],
+#            moderators=[m.strip() for m in projects_config.get(section, "moderators").split(",")],
             cpu_hours=int(projects_config.get(section, "CPUhours", fallback=0)),
             gpu_hours=int(projects_config.get(section, "GPUhours", fallback=0)),
         ))
 
     return projects
+
+def update_project(client, project):
+    """
+    Retrieves project information from the AP -- if any -- and updates the projects' members.
+    """
+    return project
 
 
 def main():
@@ -135,11 +142,16 @@ def main():
     logging.info("Using startime %s", start_time)
 
     try:
-        projects = get_projects(opts.options.project_ini)
-        projects_members = [(set(p.members), p.name) for p in projects]  # TODO: verify enddates
-
         client = AccountpageClient(token=opts.options.access_token, url=opts.options.account_page_url + "/api/")
         host_institute = opts.options.host_institute
+
+        projects = get_projects(opts.options.project_ini)
+        # update project memberships from the AP if needed
+
+        projects = [update_project(client, p) for p in projects]
+
+        projects_members = [(set(p.members), p.name) for p in projects]  # TODO: verify enddates
+
 
         # fetch slurm dbd information on accounts (projects), users and qos
         slurm_account_info = get_slurm_acct_info(SyncTypes.accounts)
