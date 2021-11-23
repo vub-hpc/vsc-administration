@@ -34,6 +34,7 @@ from vsc.administration.slurm.sync import (
 )
 from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, PRODUCTION, PILOT
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
+from vsc.utils.py2vs3 import HTTPError
 from vsc.utils.run import RunNoShell
 from vsc.utils.script_tools import ExtendedSimpleOption
 from vsc.utils.timestamp import convert_timestamp, write_timestamp, retrieve_timestamp_with_default
@@ -97,6 +98,14 @@ def update_project(client, project):
     """
     Retrieves project information from the AP -- if any -- and updates the projects' members.
     """
+
+    try:
+        (_, group) = client.group[project.group].get()
+    except HTTPError as _:
+        return project
+
+    project.members = group["members"]
+
     return project
 
 
@@ -147,7 +156,6 @@ def main():
 
         projects = get_projects(opts.options.project_ini)
         # update project memberships from the AP if needed
-
         projects = [update_project(client, p) for p in projects]
 
         projects_members = [(set(p.members), p.name) for p in projects]  # TODO: verify enddates
