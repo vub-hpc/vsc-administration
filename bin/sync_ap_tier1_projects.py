@@ -123,8 +123,9 @@ class Tier1APProjectSync(Sync):
 
         # create the projects groups in the AP
         for project in projects:
-            if project.name in active_group_names:
+            if project.name in active_group_names and False:
                 # update the members if needed
+                # this should no longer be needed, once people can populate the AP groups
                 (_, project_group) = self.apc.group[project.name].get()
 
                 current_members = set(project_group["members"])
@@ -145,8 +146,6 @@ class Tier1APProjectSync(Sync):
                 #for moderator in current_moderators - project.moderators:
                     #logging.debug("Removing moderator status for member %s of group %s", moderator, project. name)
                     #self.apc.group[project.name].member[moderator].add.moderator["false"].patch()
-
-
 
             else:
                 data = {
