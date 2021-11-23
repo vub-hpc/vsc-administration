@@ -87,7 +87,6 @@ class Tier1APProjectSync(Sync):
             "store",
             [],
         ),
-        'start_timestamp': ('Timestamp to start the sync from', str, 'store', None),
         'cluster_classes': (
             'Classes of clusters that should be synced, comma-separated',
             "strlist",
