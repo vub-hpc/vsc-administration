@@ -32,21 +32,11 @@ from vsc.administration.slurm.sync import (
     slurm_project_accounts, slurm_project_users_accounts,
     slurm_project_qos
 )
-from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, PRODUCTION, PILOT
-from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
+from vsc.config.base import GENT
 from vsc.utils.py2vs3 import HTTPError
 from vsc.utils.run import RunNoShell
-from vsc.utils.script_tools import ExtendedSimpleOption
-from vsc.utils.timestamp import convert_timestamp, write_timestamp, retrieve_timestamp_with_default
-
-NAGIOS_HEADER = "sync_slurm_tier1_projects"
-NAGIOS_CHECK_INTERVAL_THRESHOLD = 60 * 60  # 60 minutes
-
-SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
-SYNC_SLURM_ACCT_LOGFILE = "/var/log/%s.log" % (NAGIOS_HEADER)
 
 VSC_ADMIN_GROUPS = ("badmin", "l_sysadmin", "gt1_dodrio_vscadmins")
-VSC_ADMIN_GROUPS_EXCLUDE_SYNC = ("gadminforever")
 
 def execute_commands(commands):
     """Run the specified commands"""
@@ -81,17 +71,15 @@ def get_projects(projects_ini):
     projects = []
 
     for section in projects_config.sections():
-        if not section.startswith('gpr_compute'):
-            # special admin groups
-            if section in VSC_ADMIN_GROUPS:
-                projects.append(ProjectIniConfig(
-                    name=section,
-                    group=section,
-                    end_date=projects_config.get(section, "end_date"),
-                    members=[m.strip() for m in projects_config.get(section, "members").split(",")],
-                    cpu_hours=int(projects_config.get(section, "CPUhours", fallback=0)),
-                    gpu_hours=int(projects_config.get(section, "GPUhours", fallback=0)),
-                ))
+        if not section.startswith('gpr_compute') and section in VSC_ADMIN_GROUPS:
+            projects.append(ProjectIniConfig(
+                name=section,
+                group=section,
+                end_date=projects_config.get(section, "end_date"),
+                members=[m.strip() for m in projects_config.get(section, "members").split(",")],
+                cpu_hours=int(projects_config.get(section, "CPUhours", fallback=0)),
+                gpu_hours=int(projects_config.get(section, "GPUhours", fallback=0)),
+            ))
         else:
             projects.append(ProjectIniConfig(
                 name=section.replace("gpr_compute_", ""),
@@ -108,10 +96,8 @@ def get_projects(projects_ini):
 class Tier1SlurmProjectSync(Sync):
 
     CLI_OPTIONS = {
-        "host_institute": ('Name of the institute where this script is being run', str, 'store', GENT),
         "clusters": (
             "Cluster(s) (comma-separated) to sync for. "
-            "Overrides <host_institute>_SLURM_COMPUTE_CLUSTERS that are in production.",
             "strlist",
             "store",
             ["dodrio"],

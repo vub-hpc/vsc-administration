@@ -28,19 +28,12 @@ import sys
 from configparser import ConfigParser
 
 from vsc.accountpage.sync import Sync
-from vsc.accountpage.client import AccountpageClient
 from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, PRODUCTION, PILOT
-from vsc.utils.missing import nub
-from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
-from vsc.utils.run import RunNoShell
-from vsc.utils.script_tools import ExtendedSimpleOption
-from vsc.utils.timestamp import convert_timestamp, write_timestamp, retrieve_timestamp_with_default
 
-NAGIOS_HEADER = "sync_ap_tier1_projects"
-NAGIOS_CHECK_INTERVAL_THRESHOLD = 60 * 60  # 60 minutes
 
-SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
-SYNC_SLURM_ACCT_LOGFILE = "/var/log/%s.log" % (NAGIOS_HEADER)
+VSC_ADMIN_GROUPS = ("gadminforever", "badmin", "l_sysadmin", "gt1_dodrio_vscadmins")
+
+AP_ACTIVE_USERS_AUTOGROUP = "gt1_dodrio_activeusers"
 
 
 ProjectIniConfig = namedtuple("ProjectIniConfig",
@@ -62,37 +55,25 @@ def get_projects(projects_ini):
         projects_config.read_file(pini)
 
     projects = []
+    other_sources = []
 
     for section in projects_config.sections():
-        if not section.startswith('gpr_compute'):
-            continue
+        if section in VSC_ADMIN_GROUPS:
+            other_sources.append(section)
 
-        projects.append(ProjectIniConfig(
-            name=section,
-            description=projects_config.get(section, "description", fallback=section),
-            end_date=projects_config.get(section, "end_date"),
-            members=set([m.strip() for m in projects_config.get(section, "members").split(",")]),
-            moderators=set([m.strip() for m in projects_config.get(section, "moderators").split(",")]),
-        ))
+        if section.startswith('gpr_compute'):
+            projects.append(ProjectIniConfig(
+                name=section,
+                description=projects_config.get(section, "description", fallback=section),
+                end_date=projects_config.get(section, "end_date"),
+                members=set([m.strip() for m in projects_config.get(section, "members").split(",")]),
+                moderators=set([m.strip() for m in projects_config.get(section, "moderators").split(",")]),
+            ))
 
-    return projects
-
+    return (projects, other_sources)
 
 class Tier1APProjectSync(Sync):
     CLI_OPTIONS = {
-        "clusters": (
-            "Cluster(s) (comma-separated) to sync for. "
-            "Overrides <host_institute>_SLURM_COMPUTE_CLUSTERS that are in production.",
-            "strlist",
-            "store",
-            [],
-        ),
-        'cluster_classes': (
-            'Classes of clusters that should be synced, comma-separated',
-            "strlist",
-            'store',
-            [PRODUCTION, PILOT]
-        ),
         'project_ini': ('Ini file with projects information', str, 'store', None),
     }
 
@@ -101,52 +82,31 @@ class Tier1APProjectSync(Sync):
 
         # TODO: take end_date into account
 
-        projects = get_projects(self.options.project_ini)
+        (projects, other_sources) = get_projects(self.options.project_ini)
         projects_members = [(set(p.members), p.name) for p in projects]  # TODO: verify enddates
 
+        logging.debug("Current projects: %s", [p.name for p in projects])
+        logging.debug("Current other sources: %s", other_sources)
+
         # get all the groups that corresponds to projects
-        active_groups, inactive_groups = self.get_groups(modified_since="20211101")
+        active_groups, _ = self.get_groups(modified_since="20211101")
         active_group_names = set([g.vsc_id for g in active_groups])
         active_accounts, inactive_accounts = self.get_accounts()
 
-        if self.options.clusters:
-            clusters = self.options.clusters
-        else:
-            clusters = [cs
-                for p in self.options.cluster_classes
-                for cs in VSC_SLURM_CLUSTERS[host_institute][p]
-            ]
+        active_users_autogroup_sources = self.apc.autogroup[AP_ACTIVE_USERS_AUTOGROUP].get()[1]["sources"]
 
-        # create groups in the AP and set the sources for the
-        # is done in another script
+        logging.debug("Current %s sources: %s", AP_ACTIVE_USERS_AUTOGROUP, active_users_autogroup_sources)
 
         # create the projects groups in the AP
+        for source in other_sources:
+            if source not in active_users_autogroup_sources:
+                if dryrun:
+                    logging.info("Calling apc.autogroup[%s].source[%s].add.post()", AP_ACTIVE_USERS_AUTOGROUP, source)
+                else:
+                    self.apc.autogroup[AP_ACTIVE_USERS_AUTOGROUP].source[source].add.post()
+
         for project in projects:
-            if project.name in active_group_names and False:
-                # update the members if needed
-                # this should no longer be needed, once people can populate the AP groups
-                (_, project_group) = self.apc.group[project.name].get()
-
-                current_members = set(project_group["members"])
-                current_moderators = set(project_group["moderators"])
-
-                for member in project.members - current_members:
-                    logging.debug("Add member %s to group %s", member, project.name)
-                    self.apc.group[project.name].member[member].post()
-
-                for member in current_members - project.members:
-                    logging.debug("Delete members %s from group %s", member, project.name)
-                    self.apc.group[project.name].member[member].delete()
-
-                #for moderator in project.moderators - current_moderators:
-                    #logging.debug("Set moderator status for member %s of group %s", moderator, project. name)
-                    #self.apc.group[project.name].member[moderator].add.moderator["true"].patch()
-
-                #for moderator in current_moderators - project.moderators:
-                    #logging.debug("Removing moderator status for member %s of group %s", moderator, project. name)
-                    #self.apc.group[project.name].member[moderator].add.moderator["false"].patch()
-
-            else:
+            if project.name not in active_group_names:
                 data = {
                     "name": project.name.replace("gpr_compute_", ""),  # this will be regenerated, the RA should only have the suffix
                     "members": [
@@ -159,8 +119,16 @@ class Tier1APProjectSync(Sync):
                         "label": project.name.split("_")[1] # gpr_compute_2021_042 -> compute
                     }
                 }
-                _, _ = self.apc.ragroup.post(body=data)
-                _, _ = self.apc.autogroup["gt1_dodrio_activeusers"].source[project.name].add.post()
+                if dryrun:
+                    logging.info("Calling apc.ragroup.post() with body %s", data)
+                else:
+                    _, _ = self.apc.ragroup.post(body=data)
+
+            if project.name not in active_users_autogroup_sources:
+                if dryrun:
+                    logging.info("Calling apc.autogroup[%s].source[%s].add.post()", AP_ACTIVE_USERS_AUTOGROUP, project.name)
+                else:
+                    _, _ = self.apc.autogroup[AP_ACTIVE_USERS_AUTOGROUP].source[project.name].add.post()
 
 
 
