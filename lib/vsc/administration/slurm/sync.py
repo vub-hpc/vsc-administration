@@ -51,6 +51,7 @@ IGNORE_ACCOUNTS = ["root"]
 IGNORE_QOS = ["normal"]
 
 TIER1_GPU_TO_CPU_HOURS_RATE = 12 # 12 cpus per gpu
+TIER1_SLURM_DEFAULT_PROJECT_ACCOUNT = "gt1_default"
 
 # Fields for Slurm 20.11.
 # FIXME: at some point this should be versioned
@@ -101,11 +102,13 @@ def mkSlurmQos(fields):
     return qos
 
 
-def parse_slurm_acct_line(header, line, info_type, user_field_number):
+def parse_slurm_acct_line(header, line, info_type, user_field_number, account_field_number, exclude_accounts=None):
     """Parse the line into the correct data type."""
     fields = line.split("|")
 
     if info_type == SyncTypes.accounts:
+        if exclude_accounts and fields[account_field_number] in exclude_accounts:
+            return None
         if fields[user_field_number]:
             # association information for a user. Users are processed later.
             return None
@@ -120,7 +123,7 @@ def parse_slurm_acct_line(header, line, info_type, user_field_number):
     return creator(dict(zip(header, fields)))
 
 
-def parse_slurm_acct_dump(lines, info_type):
+def parse_slurm_acct_dump(lines, info_type, exclude_accounts=None):
     """Parse the accounts from the listing."""
     acct_info = set()
 
@@ -129,11 +132,15 @@ def parse_slurm_acct_dump(lines, info_type):
         user_field_number = [h.lower() for h in header].index("user")
     except ValueError:
         user_field_number = None
+    try:
+        account_field_number = [h.lower() for h in header].index("account")
+    except ValueError:
+        account_field_number = None
 
     for line in lines[1:]:
         line = line.rstrip()
         try:
-            info = parse_slurm_acct_line(header, line, info_type, user_field_number)
+            info = parse_slurm_acct_line(header, line, info_type, user_field_number, account_field_number, exclude_accounts)
             # This fails when we get e.g., the users and look at the account lines.
             # We should them just skip that line instead of raising an exception
             if info:
@@ -145,7 +152,7 @@ def parse_slurm_acct_dump(lines, info_type):
     return acct_info
 
 
-def get_slurm_acct_info(info_type):
+def get_slurm_acct_info(info_type, exclude_accounts=None):
     """Get slurm account info for the given clusterself.
 
     @param info_type: SyncTypes
@@ -159,7 +166,8 @@ def get_slurm_acct_info(info_type):
     ])
     if exitcode != 0:
         raise SacctMgrException("Cannot run sacctmgr")
-    info = parse_slurm_acct_dump(contents.splitlines(), info_type)
+
+    info = parse_slurm_acct_dump(contents.splitlines(), info_type, exclude_accounts)
 
     return info
 
@@ -569,13 +577,14 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
     """Check if the users are in the project account.
 
     For users in the project:
-    If the user does not exist on the system, he is added to the project with the project as the default account.
-    Otherwise, a new association is created for this user and the project. The users' default account remains with
-    the oldest project a user has. (TODO)
 
-    For users who left the project:
-    The user's association is removed. We need to check if this is the last instance for this user. If not, they
-    should get a new default account. (TODO)
+    - If the user does not exist on the system:
+        - a new association in the default account is created. The associated QoS does not allow jobs.
+        - a new association in the project account is created.
+
+    - For users who left the project:
+        - The user's association in the project is removed.
+        - If this was the last project for this user, we also remove the association in the default account.  (TODO)
     """
 
     commands = []
@@ -587,13 +596,13 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
 
         new_users = set()
         remove_project_users = set()
-
-        # No default accounts!
+        all_project_users = set()
 
         for (members, project_name) in project_members:
 
             # these are the current Slurm users for this project
             slurm_project_users = set([user for (user, acct) in cluster_users_acct if acct == project_name])
+            all_project_users |= slurm_project_users
 
             # these users are not yet in the Slurm DBD for any project
             new_users |= set([(user, project_name) for user in (members & active_accounts) - slurm_project_users])
@@ -601,9 +610,18 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
             # these are the Slurm users that should no longer be associated with the project
             remove_project_users |= set([(user, project_name) for user in slurm_project_users - members])
 
-        logging.debug("%d new users", len(new_users))
-        logging.debug("%d removed users", len(remove_project_users))
+        # these are the users not in any project
+        remove_slurm_users = set([u[0] for u in cluster_users_acct]) - all_project_users
 
+        logging.debug("%d new users", len(new_users))
+        logging.debug("%d removed project users", len(remove_project_users))
+        logging.debug("%d removed slurm users", len(remove_slurm_users))
+
+        #commands.extend([create_add_user_command(
+        #    user=user,
+        #    account=TIER1_SLURM_DEFAULT_PROJECT_ACCOUNT,
+        #    cluster=cluster) for (user, _) in new_users
+        #])
         commands.extend([create_add_user_command(
             user=user,
             account=project_name,
@@ -613,8 +631,10 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
             create_remove_user_account_command(user=user, account=project_name, cluster=cluster)
             for (user, project_name) in remove_project_users
         ])
-
-        #TODO: Add the QoS commands
+        #commands.extend([
+        #    create_remove_user_account_command(user=user, account=TIER1_SLURM_DEFAULT_PROJECT_ACCOUNT, cluster=cluster)
+        #    for user in remove_slurm_users
+        #])
 
     return commands
 

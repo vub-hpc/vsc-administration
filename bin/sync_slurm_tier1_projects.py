@@ -37,6 +37,7 @@ from vsc.utils.py2vs3 import HTTPError
 from vsc.utils.run import RunNoShell
 
 VSC_ADMIN_GROUPS = ("badmin", "l_sysadmin", "gt1_dodrio_vscadmins")
+VSC_EXCLUDE_ADMIN_GROUPS = ("gadminforever",)
 
 def execute_commands(commands):
     """Run the specified commands"""
@@ -71,7 +72,10 @@ def get_projects(projects_ini):
     projects = []
 
     for section in projects_config.sections():
+        if section in VSC_EXCLUDE_ADMIN_GROUPS:
+            continue
         if not section.startswith('gpr_compute') and section in VSC_ADMIN_GROUPS:
+            logging.info("processing section %s", section)
             projects.append(ProjectIniConfig(
                 name=section,
                 group=section,
@@ -97,7 +101,7 @@ class Tier1SlurmProjectSync(Sync):
 
     CLI_OPTIONS = {
         "clusters": (
-            "Cluster(s) (comma-separated) to sync for. "
+            "Cluster(s) (comma-separated) to sync for. ",
             "strlist",
             "store",
             ["dodrio"],
@@ -113,9 +117,12 @@ class Tier1SlurmProjectSync(Sync):
         try:
             (_, group) = self.apc.group[project.group].get()
         except HTTPError as _:
+            logging.error("Could not get project group %s data", project.group)
             return project
 
-        project._replace(members=group["members"])
+        logging.debug("Current group members: %s", project.members)
+        project = project._replace(members=group["members"])
+        logging.debug("Updated group members: %s", project.members)
 
         return project
 
@@ -128,7 +135,7 @@ class Tier1SlurmProjectSync(Sync):
         projects_members = [(set(p.members), p.name) for p in projects]  # TODO: verify enddates
 
         # fetch slurm dbd information on accounts (projects), users and qos
-        slurm_account_info = get_slurm_acct_info(SyncTypes.accounts)
+        slurm_account_info = get_slurm_acct_info(SyncTypes.accounts, exclude_accounts=VSC_EXCLUDE_ADMIN_GROUPS)
         slurm_user_info = get_slurm_acct_info(SyncTypes.users)
         slurm_qos_info = get_slurm_acct_info(SyncTypes.qos)
 
