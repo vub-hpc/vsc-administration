@@ -22,7 +22,6 @@ from __future__ import print_function
 from collections import namedtuple
 
 import logging
-import sys
 
 from configparser import ConfigParser
 
@@ -32,7 +31,6 @@ from vsc.administration.slurm.sync import (
     slurm_project_accounts, slurm_project_users_accounts,
     slurm_project_qos
 )
-from vsc.config.base import GENT
 from vsc.utils.py2vs3 import HTTPError
 from vsc.utils.run import RunNoShell
 
@@ -147,7 +145,7 @@ class Tier1SlurmProjectSync(Sync):
 
     def do(self, dryrun):
 
-        (active_projects, past_projects) = get_projects(self.options.project_ini)
+        (active_projects, _) = get_projects(self.options.project_ini)
         # update project memberships from the AP if needed
         projects = [self.update_project(p) for p in active_projects]
 
