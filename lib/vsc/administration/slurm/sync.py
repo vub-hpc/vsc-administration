@@ -140,7 +140,9 @@ def parse_slurm_acct_dump(lines, info_type, exclude_accounts=None):
     for line in lines[1:]:
         line = line.rstrip()
         try:
-            info = parse_slurm_acct_line(header, line, info_type, user_field_number, account_field_number, exclude_accounts)
+            info = parse_slurm_acct_line(
+                header, line, info_type, user_field_number, account_field_number, exclude_accounts
+            )
             # This fails when we get e.g., the users and look at the account lines.
             # We should them just skip that line instead of raising an exception
             if info:
@@ -504,8 +506,6 @@ def slurm_modify_qos():
 def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
     """Check for new/changed projects and create their accounts accordingly
 
-    XXX: The project name is the same as the group name in the AP that corresponds to the project.
-
     We assume that the QOS has already been created
     """
     commands = []
@@ -632,7 +632,10 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
             for (user, project_name) in remove_project_users
         ])
         #commands.extend([
-        #    create_remove_user_account_command(user=user, account=TIER1_SLURM_DEFAULT_PROJECT_ACCOUNT, cluster=cluster)
+        #    create_remove_user_account_command(
+        #       user=user,
+        #       account=TIER1_SLURM_DEFAULT_PROJECT_ACCOUNT,
+        #       cluster=cluster)
         #    for user in remove_slurm_users
         #])
 

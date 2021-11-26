@@ -55,6 +55,14 @@ ProjectIniConfig = namedtuple("ProjectIniConfig",
     ["name", "group", "end_date", "members", "cpu_hours", "gpu_hours"]
 )
 
+
+def over_and_done(datestamp):
+    """
+    Is the datestamp past the current day?
+    """
+    return False
+
+
 def get_projects(projects_ini):
     """
     This reads the ini file which contains information on the projects
@@ -69,13 +77,23 @@ def get_projects(projects_ini):
     with open(projects_ini) as pini:
         projects_config.read_file(pini)
 
-    projects = []
+    active_projects = []
+    past_projects = []
 
     for section in projects_config.sections():
         if section in VSC_EXCLUDE_ADMIN_GROUPS:
             continue
-        if not section.startswith('gpr_compute') and section in VSC_ADMIN_GROUPS:
-            logging.info("processing section %s", section)
+
+        end_date = projects_config.get(section, "end_date", fallback="20380101")
+
+        if over_and_done(end_date):
+            logging.debug("Project %s past end date %s", section, end_date)
+            projects = past_projects
+        else:
+            projects = active_projects
+
+        logging.info("processing section %s", section)
+        if section in VSC_ADMIN_GROUPS:
             projects.append(ProjectIniConfig(
                 name=section,
                 group=section,
@@ -84,7 +102,8 @@ def get_projects(projects_ini):
                 cpu_hours=int(projects_config.get(section, "CPUhours", fallback=0)),
                 gpu_hours=int(projects_config.get(section, "GPUhours", fallback=0)),
             ))
-        else:
+
+        elif section.startswith('gpr_compute'):
             projects.append(ProjectIniConfig(
                 name=section.replace("gpr_compute_", ""),
                 group=section,
@@ -95,7 +114,7 @@ def get_projects(projects_ini):
                 gpu_hours=int(projects_config.get(section, "GPUhours", fallback=0)),
             ))
 
-    return projects
+    return (active_projects, past_projects)
 
 class Tier1SlurmProjectSync(Sync):
 
@@ -128,9 +147,9 @@ class Tier1SlurmProjectSync(Sync):
 
     def do(self, dryrun):
 
-        projects = get_projects(self.options.project_ini)
+        (active_projects, past_projects) = get_projects(self.options.project_ini)
         # update project memberships from the AP if needed
-        projects = [self.update_project(p) for p in projects]
+        projects = [self.update_project(p) for p in active_projects]
 
         projects_members = [(set(p.members), p.name) for p in projects]  # TODO: verify enddates
 

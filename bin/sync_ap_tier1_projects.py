@@ -23,16 +23,12 @@ The script must result in an idempotent execution, to ensure nothing breaks.
 from collections import namedtuple
 
 import logging
-import sys
 
 from configparser import ConfigParser
 
 from vsc.accountpage.sync import Sync
-from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, PRODUCTION, PILOT
-
 
 VSC_ADMIN_GROUPS = ("gadminforever", "badmin", "l_sysadmin", "gt1_dodrio_vscadmins")
-
 AP_ACTIVE_USERS_AUTOGROUP = "gt1_dodrio_activeusers"
 
 
@@ -83,7 +79,6 @@ class Tier1APProjectSync(Sync):
         # TODO: take end_date into account
 
         (projects, other_sources) = get_projects(self.options.project_ini)
-        projects_members = [(set(p.members), p.name) for p in projects]  # TODO: verify enddates
 
         logging.debug("Current projects: %s", [p.name for p in projects])
         logging.debug("Current other sources: %s", other_sources)
@@ -91,7 +86,6 @@ class Tier1APProjectSync(Sync):
         # get all the groups that corresponds to projects
         active_groups, _ = self.get_groups(modified_since="20211101")
         active_group_names = set([g.vsc_id for g in active_groups])
-        active_accounts, inactive_accounts = self.get_accounts()
 
         active_users_autogroup_sources = self.apc.autogroup[AP_ACTIVE_USERS_AUTOGROUP].get()[1]["sources"]
 
@@ -108,7 +102,8 @@ class Tier1APProjectSync(Sync):
         for project in projects:
             if project.name not in active_group_names:
                 data = {
-                    "name": project.name.replace("gpr_compute_", ""),  # this will be regenerated, the RA should only have the suffix
+                    # this will be regenerated, the RA should only have the suffix
+                    "name": project.name.replace("gpr_compute_", ""),
                     "members": [
                         { "vsc_id": m, "moderator": m in project.moderators }
                         for m in project.members.union(project.moderators)
@@ -126,11 +121,11 @@ class Tier1APProjectSync(Sync):
 
             if project.name not in active_users_autogroup_sources:
                 if dryrun:
-                    logging.info("Calling apc.autogroup[%s].source[%s].add.post()", AP_ACTIVE_USERS_AUTOGROUP, project.name)
+                    logging.info("Calling apc.autogroup[%s].source[%s].add.post()",
+                        AP_ACTIVE_USERS_AUTOGROUP, project.name
+                    )
                 else:
                     _, _ = self.apc.autogroup[AP_ACTIVE_USERS_AUTOGROUP].source[project.name].add.post()
-
-
 
 
 if __name__ == '__main__':
