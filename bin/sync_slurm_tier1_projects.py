@@ -24,6 +24,7 @@ from collections import namedtuple
 import logging
 
 from configparser import ConfigParser
+from datetime import datetime
 
 from vsc.accountpage.sync import Sync
 from vsc.administration.slurm.sync import (
@@ -58,7 +59,8 @@ def over_and_done(datestamp):
     """
     Is the datestamp past the current day?
     """
-    return False
+    end = datetime.strptime(datestamp, "%Y%m%d").date()
+    return end < datetime.today().date()
 
 
 def get_projects(projects_ini):
