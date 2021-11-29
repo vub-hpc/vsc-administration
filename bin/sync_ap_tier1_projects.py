@@ -105,7 +105,7 @@ class Tier1APProjectSync(Sync):
                     # this will be regenerated, the RA should only have the suffix
                     "name": project.name.replace("gpr_compute_", ""),
                     "members": [
-                        { "vsc_id": m, "moderator": m in project.moderators }
+                        {"vsc_id": m, "moderator": m in project.moderators}
                         for m in project.members.union(project.moderators)
                     ],
                     "description": project.description,
