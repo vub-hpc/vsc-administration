@@ -29,8 +29,7 @@ install_requires = [
     'vsc-base >= 3.0.6',
     'vsc-config >= 3.7.2',
     'vsc-filesystems >= 1.0.1',
-    'python-ldap',
-    'vsc-ldap >= 2.0.0',
+    'vsc-ldap >= 2.1.4',
     'vsc-ldap-extension >= 2.0.0',
     'vsc-utils >= 2.0.0',
     'lockfile >= 0.9.1',
@@ -39,6 +38,10 @@ install_requires = [
 if sys.version_info < (3, 0):
     # enum34 is only required with Python 2
     install_requires.append('enum34')
+    install_requires.append('python-ldap < 3.3.0')
+else:
+    install_requires.append('python-ldap')
+
 
 PACKAGE = {
     'version': '2.6.0',
