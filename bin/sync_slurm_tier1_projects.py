@@ -187,8 +187,8 @@ class Tier1SlurmProjectSync(Sync):
         logging.info("Executing %d commands", len(sacctmgr_commands))
 
         if dryrun:
-            print("Commands to be executed:\n")
-            print("\n".join([" ".join(c) for c in sacctmgr_commands]))
+            logging.info("Commands to be executed:\n")
+            logging.info("\n".join([" ".join(c) for c in sacctmgr_commands]))
         else:
             execute_commands(sacctmgr_commands)
 
