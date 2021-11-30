@@ -85,23 +85,13 @@ class SlurmSyncTestGent(TestCase):
             SAI(Account="some_project", Share=1, Cluster="mycluster"),
         ]
 
-        commands = slurm_project_accounts(resource_app_projects, slurm_account_info, ["mycluster"])
+        commands = slurm_project_accounts(resource_app_projects, slurm_account_info, ["mycluster"], ["some_project"])
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project3 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project3"),
             shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project4 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project4"),
             shlex.split("/usr/bin/sacctmgr -i delete account Name=gpr_compute_project5 Cluster=mycluster")
         ]]))
-
-
-    def test_slurm_project_users_accounts(self):
-        """
-
-        """
-        project_members = {
-            "gpr_compute_project1": (set(["user1", "user2", "user3"]), VO(vsc_id="vo1", institute={"name": "gent"}, fairshare=1)),
-            "gpr_compute_project2": (set(["user4", "user5", "user6"]), VO(vsc_id="vo2", institute={"name": "gent"}, fairshare=1)),
-        }
 
 
     def test_slurm_project_qos(self):
@@ -132,7 +122,7 @@ class SlurmSyncTestGent(TestCase):
         ]]))
 
 
-    def test_slurm_project_user_accounts(self):
+    def test_slurm_project_users_accounts(self):
         project_members = [
             (set(["user1", "user2", "user3"]), "gpr_compute_project1"),
             (set(["user4", "user5", "user6"]), "gpr_compute_project2"),
