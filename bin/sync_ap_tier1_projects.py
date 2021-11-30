@@ -28,7 +28,7 @@ from configparser import ConfigParser
 
 from vsc.accountpage.sync import Sync
 
-VSC_ADMIN_GROUPS = ("gadminforever", "badmin", "l_sysadmin", "gt1_dodrio_vscadmins")
+VSC_ADMIN_GROUPS = ("gadminforever", "astaff", "badmin", "l_sysadmin", "gt1_dodrio_vscadmins")
 AP_ACTIVE_USERS_AUTOGROUP = "gt1_dodrio_activeusers"
 
 
