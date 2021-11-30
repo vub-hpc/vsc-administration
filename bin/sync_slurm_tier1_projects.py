@@ -146,7 +146,7 @@ class Tier1SlurmProjectSync(Sync):
 
     def do(self, dryrun):
 
-        (active_projects, inactive_projects) = get_projects(self.options.project_ini)
+        (active_projects, _) = get_projects(self.options.project_ini)
         # update project memberships from the AP if needed
         projects = [self.update_project(p) for p in active_projects]
 
