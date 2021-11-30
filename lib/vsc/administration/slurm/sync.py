@@ -615,11 +615,6 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
         logging.debug("%d removed project users", len(remove_project_users))
         logging.debug("%d removed slurm users", len(remove_slurm_users))
 
-        #commands.extend([create_add_user_command(
-        #    user=user,
-        #    account=TIER1_SLURM_DEFAULT_PROJECT_ACCOUNT,
-        #    cluster=cluster) for (user, _) in new_users
-        #])
         commands.extend([create_add_user_command(
             user=user,
             account=project_name,
@@ -629,13 +624,6 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
             create_remove_user_account_command(user=user, account=project_name, cluster=cluster)
             for (user, project_name) in remove_project_users
         ])
-        #commands.extend([
-        #    create_remove_user_account_command(
-        #       user=user,
-        #       account=TIER1_SLURM_DEFAULT_PROJECT_ACCOUNT,
-        #       cluster=cluster)
-        #    for user in remove_slurm_users
-        #])
 
     return commands
 
