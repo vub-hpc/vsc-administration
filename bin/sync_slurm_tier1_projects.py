@@ -70,6 +70,8 @@ def get_projects(projects_ini):
     [project_name]
     end_date: YYYYMMDD
     members: comma-separated list of VSC IDs of project members
+    CPUhours: int
+    GPUhours: int
 
     """
 
