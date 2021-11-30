@@ -109,7 +109,6 @@ def get_projects(projects_ini):
                 group=section,
                 end_date=projects_config.get(section, "end_date"),
                 members=[m.strip() for m in projects_config.get(section, "members").split(",")],
-    #            moderators=[m.strip() for m in projects_config.get(section, "moderators").split(",")],
                 cpu_hours=int(projects_config.get(section, "CPUhours", fallback=0)),
                 gpu_hours=int(projects_config.get(section, "GPUhours", fallback=0)),
             ))
