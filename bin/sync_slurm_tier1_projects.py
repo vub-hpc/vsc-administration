@@ -170,7 +170,12 @@ class Tier1SlurmProjectSync(Sync):
         # add the QoS
         sacctmgr_commands += slurm_project_qos(projects, slurm_qos_info, self.options.clusters)
 
-        sacctmgr_commands += slurm_project_accounts(projects, slurm_account_info, self.options.clusters, TIER1_PROTECTED_ACCOUNTS)
+        sacctmgr_commands += slurm_project_accounts(
+            projects,
+            slurm_account_info,
+            self.options.clusters,
+            TIER1_PROTECTED_ACCOUNTS
+        )
 
         # process project members
         sacctmgr_commands += slurm_project_users_accounts(
