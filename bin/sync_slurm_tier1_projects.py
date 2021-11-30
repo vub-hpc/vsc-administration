@@ -18,7 +18,6 @@ This script synchronises the users and projects from the Resource App to the Slu
 
 The script must result in an idempotent execution, to ensure nothing breaks.
 """
-from __future__ import print_function
 from collections import namedtuple
 
 import logging
@@ -35,8 +34,9 @@ from vsc.administration.slurm.sync import (
 from vsc.utils.py2vs3 import HTTPError
 from vsc.utils.run import RunNoShell
 
-VSC_ADMIN_GROUPS = ("badmin", "l_sysadmin", "gt1_dodrio_vscadmins")
-VSC_EXCLUDE_ADMIN_GROUPS = ("gadminforever",)
+VSC_ADMIN_GROUPS = ("astaff", "badmin", "l_sysadmin", "gt1_dodrio_vscadmins")
+
+TIER1_PROTECTED_ACCOUNTS = ("root", "projects", "gadminforever", "gt1_default")
 
 def execute_commands(commands):
     """Run the specified commands"""
@@ -81,7 +81,7 @@ def get_projects(projects_ini):
     past_projects = []
 
     for section in projects_config.sections():
-        if section in VSC_EXCLUDE_ADMIN_GROUPS:
+        if section in TIER1_PROTECTED_ACCOUNTS:
             continue
 
         end_date = projects_config.get(section, "end_date", fallback="20380101")
@@ -147,14 +147,14 @@ class Tier1SlurmProjectSync(Sync):
 
     def do(self, dryrun):
 
-        (active_projects, _) = get_projects(self.options.project_ini)
+        (active_projects, inactive_projects) = get_projects(self.options.project_ini)
         # update project memberships from the AP if needed
         projects = [self.update_project(p) for p in active_projects]
 
         projects_members = [(set(p.members), p.name) for p in projects]  # TODO: verify enddates
 
         # fetch slurm dbd information on accounts (projects), users and qos
-        slurm_account_info = get_slurm_acct_info(SyncTypes.accounts, exclude_accounts=VSC_EXCLUDE_ADMIN_GROUPS)
+        slurm_account_info = get_slurm_acct_info(SyncTypes.accounts, exclude_accounts=TIER1_PROTECTED_ACCOUNTS)
         slurm_user_info = get_slurm_acct_info(SyncTypes.users)
         slurm_qos_info = get_slurm_acct_info(SyncTypes.qos)
 
@@ -170,7 +170,7 @@ class Tier1SlurmProjectSync(Sync):
         # add the QoS
         sacctmgr_commands += slurm_project_qos(projects, slurm_qos_info, self.options.clusters)
 
-        sacctmgr_commands += slurm_project_accounts(projects, slurm_account_info, self.options.clusters)
+        sacctmgr_commands += slurm_project_accounts(projects, slurm_account_info, self.options.clusters, TIER1_PROTECTED_ACCOUNTS)
 
         # process project members
         sacctmgr_commands += slurm_project_users_accounts(

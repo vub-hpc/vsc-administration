@@ -503,7 +503,7 @@ def slurm_modify_qos():
     pass
 
 
-def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
+def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, protected_accounts):
     """Check for new/changed projects and create their accounts accordingly
 
     We assume that the QOS has already been created
@@ -525,12 +525,10 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters):
                 ))
 
         for project_name in cluster_accounts - resource_app_project_names:
-            if not project_name.startswith('gpr_compute'):
-                continue  # in case we have manual projects we do not want removed
-
-            commands.append(create_remove_account_command(
-                account=project_name,
-                cluster=cluster))
+            if project_name not in protected_accounts:
+                commands.append(create_remove_account_command(
+                    account=project_name,
+                    cluster=cluster))
 
     return commands
 
