@@ -185,7 +185,7 @@ def create_add_account_command(account, parent, organisation, cluster, fairshare
 
     @returns: list comprising the command
     """
-    CREATE_ACCOUNT_COMMAND = [
+    create_account_command = [
         SLURM_SACCT_MGR,
         "-i",   # commit immediately
         "add",
@@ -197,9 +197,9 @@ def create_add_account_command(account, parent, organisation, cluster, fairshare
     ]
 
     if fairshare is not None:
-        CREATE_ACCOUNT_COMMAND.append("Fairshare={0}".format(fairshare))
+        create_account_command.append("Fairshare={0}".format(fairshare))
     if qos is not None:
-        CREATE_ACCOUNT_COMMAND.append("Qos={0}".format(qos))
+        create_account_command.append("Qos={0}".format(qos))
 
     logging.debug(
         "Adding command to add account %s with Parent=%s Cluster=%s Organization=%s",
@@ -209,11 +209,11 @@ def create_add_account_command(account, parent, organisation, cluster, fairshare
         organisation,
         )
 
-    return CREATE_ACCOUNT_COMMAND
+    return create_account_command
 
 
 def create_change_account_fairshare_command(account, cluster, fairshare):
-    CHANGE_ACCOUNT_FAIRSHARE_COMMAND = [
+    change_account_fairshare_command = [
         SLURM_SACCT_MGR,
         "-i",
         "modify",
@@ -230,7 +230,7 @@ def create_change_account_fairshare_command(account, cluster, fairshare):
         fairshare,
     )
 
-    return CHANGE_ACCOUNT_FAIRSHARE_COMMAND
+    return change_account_fairshare_command
 
 
 def create_add_user_command(user, account, cluster, default_account=None):
@@ -244,7 +244,7 @@ def create_add_user_command(user, account, cluster, default_account=None):
 
     @returns: list comprising the command
     """
-    CREATE_USER_COMMAND = [
+    create_user_command = [
         SLURM_SACCT_MGR,
         "-i",   # commit immediately
         "add",
@@ -254,7 +254,7 @@ def create_add_user_command(user, account, cluster, default_account=None):
         "Cluster={0}".format(cluster)
     ]
     if default_account is not None:
-        CREATE_USER_COMMAND.append(
+        create_user_command.append(
             "DefaultAccount={0}".format(account),
         )
     logging.debug(
@@ -264,7 +264,7 @@ def create_add_user_command(user, account, cluster, default_account=None):
         cluster,
         )
 
-    return CREATE_USER_COMMAND
+    return create_user_command
 
 
 def create_change_user_command(user, current_vo_id, new_vo_id, cluster, default_account=None):
@@ -273,7 +273,7 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster, default_
     @returns: two lists comprising the commands
     """
     add_user_command = create_add_user_command(user, new_vo_id, cluster, default_account)
-    REMOVE_ASSOCIATION_USER_COMMAND = [
+    remove_association_user_command = [
         SLURM_SACCT_MGR,
         "-i",   # commit immediately
         "delete",
@@ -291,7 +291,7 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster, default_
         new_vo_id
         )
 
-    return [add_user_command, REMOVE_ASSOCIATION_USER_COMMAND]
+    return [add_user_command, remove_association_user_command]
 
 
 def create_remove_user_command(user, cluster):
@@ -299,7 +299,7 @@ def create_remove_user_command(user, cluster):
 
     @returns: list comprising the command
     """
-    REMOVE_USER_COMMAND = [
+    remove_user_command = [
         SLURM_SACCT_MGR,
         "-i",   # commit immediately
         "delete",
@@ -314,7 +314,7 @@ def create_remove_user_command(user, cluster):
         cluster,
         )
 
-    return REMOVE_USER_COMMAND
+    return remove_user_command
 
 
 def create_remove_account_command(account, cluster):
@@ -322,7 +322,7 @@ def create_remove_account_command(account, cluster):
 
     @returns: list comprising the command
     """
-    REMOVE_ACCOUNT_COMMAND = [
+    remove_account_command = [
         SLURM_SACCT_MGR,
         "-i",
         "delete",
@@ -337,7 +337,7 @@ def create_remove_account_command(account, cluster):
         cluster,
     )
 
-    return REMOVE_ACCOUNT_COMMAND
+    return remove_account_command
 
 
 def create_remove_user_account_command(user, account, cluster):
@@ -345,7 +345,7 @@ def create_remove_user_account_command(user, account, cluster):
 
     @returns: list comprising the command
     """
-    REMOVE_USER_COMMAND = [
+    remove_user_command = [
         SLURM_SACCT_MGR,
         "-i",   # commit immediately
         "delete",
@@ -362,7 +362,7 @@ def create_remove_user_account_command(user, account, cluster):
         cluster,
         )
 
-    return REMOVE_USER_COMMAND
+    return remove_user_command
 
 
 def create_add_qos_command(name):
@@ -370,7 +370,7 @@ def create_add_qos_command(name):
 
     @returns: the list comprising the command
     """
-    ADD_QOS_COMMAND = [
+    add_qos_command = [
         SLURM_SACCT_MGR,
         "-i",
         "add",
@@ -378,7 +378,7 @@ def create_add_qos_command(name):
         "Name={0}".format(name)
     ]
 
-    return ADD_QOS_COMMAND
+    return add_qos_command
 
 def create_remove_qos_command(name):
     """Create the command to remove a QOS.
@@ -387,7 +387,7 @@ def create_remove_qos_command(name):
 
     @returns: the list comprising the command
     """
-    REMOVE_QOS_COMMAND = [
+    remove_qos_command = [
         SLURM_SACCT_MGR,
         "-i",
         "remove",
@@ -396,7 +396,7 @@ def create_remove_qos_command(name):
         "Name={0}".format(name),
     ]
 
-    return REMOVE_QOS_COMMAND
+    return remove_qos_command
 
 
 def create_modify_qos_command(name, settings):
@@ -407,7 +407,7 @@ def create_modify_qos_command(name, settings):
 
     @returns: the list comprising the command
     """
-    MODIFY_QOS_COMMAND = [
+    modify_qos_command = [
         SLURM_SACCT_MGR,
         "-i",
         "modify",
@@ -418,9 +418,9 @@ def create_modify_qos_command(name, settings):
     ]
 
     for k, v in settings.items():
-        MODIFY_QOS_COMMAND.append("{0}={1}".format(k, v))
+        modify_qos_command.append("{0}={1}".format(k, v))
 
-    return MODIFY_QOS_COMMAND
+    return modify_qos_command
 
 
 def slurm_institute_accounts(slurm_account_info, clusters, host_institute, institute_vos):
@@ -503,7 +503,7 @@ def slurm_modify_qos():
     pass
 
 
-def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, protected_accounts):
+def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, protected_accounts, inactive_projects):
     """Check for new/changed projects and create their accounts accordingly
 
     We assume that the QOS has already been created
@@ -526,6 +526,13 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, 
 
         for project_name in cluster_accounts - resource_app_project_names:
             if project_name not in protected_accounts:
+                commands.append(create_remove_account_command(
+                    account=project_name,
+                    cluster=cluster))
+
+        for project_name in inactive_projects:
+            if project_name not in protected_accounts:
+                # this will also remove the associations
                 commands.append(create_remove_account_command(
                     account=project_name,
                     cluster=cluster))
