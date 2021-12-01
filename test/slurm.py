@@ -75,10 +75,6 @@ class SlurmSyncTestGent(TestCase):
             RAP(name="gpr_compute_project4"),
         ]
 
-        inactive_projects = [
-            RAP(name="gpr_compute_project7"),
-        ]
-
         SAI = namedtuple("SAI", ["Account", "Share", "Cluster"])
 
         slurm_account_info = [
@@ -90,7 +86,7 @@ class SlurmSyncTestGent(TestCase):
             SAI(Account="some_project", Share=1, Cluster="mycluster"),
         ]
 
-        commands = slurm_project_accounts(resource_app_projects, slurm_account_info, ["mycluster"], ["some_project"], inactive_projects)
+        commands = slurm_project_accounts(resource_app_projects, slurm_account_info, ["mycluster"], ["some_project"])
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project3 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project3"),
