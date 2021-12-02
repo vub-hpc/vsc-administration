@@ -29,9 +29,6 @@ install_requires = [
     'vsc-base >= 3.0.6',
     'vsc-config >= 3.7.2',
     'vsc-filesystems >= 1.0.1',
-    'python-ldap',
-    'vsc-ldap >= 2.0.0',
-    'vsc-ldap-extension >= 2.0.0',
     'vsc-utils >= 2.0.0',
     'lockfile >= 0.9.1',
 ]
@@ -41,7 +38,7 @@ if sys.version_info < (3, 0):
     install_requires.append('enum34')
 
 PACKAGE = {
-    'version': '2.5.2',
+    'version': '3.0.0',
     'author': [ag, jt],
     'maintainer': [ag, jt],
     'tests_require': ['mock'],
