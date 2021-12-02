@@ -398,8 +398,7 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
                         try:
                             moved_users.add((user, reverse_vo_mapping[user]))
                         except KeyError as err:
-                            logging.warning("Dry run, cannot find up user %s in reverse VO map",
-                                            user)
+                            logging.warning("Dry run, cannot find up user %s in reverse VO map: %s", user, err)
 
         logging.debug("%d new users", len(new_users))
         logging.debug("%d removed users", len(remove_users))

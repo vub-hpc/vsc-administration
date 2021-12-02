@@ -86,7 +86,7 @@ def set_up_filesystem(
                         os.chown(user_path, user_id, user_id)
                         os.chmod(user_path, 0o700)
                 except (IOError, OSError) as err:
-                    logging.error("Problem creating dir %s", user_path)
+                    logging.error("Problem creating dir %s: %s", user_path, err)
 
     if vo_support:
 
