@@ -29,8 +29,6 @@ install_requires = [
     'vsc-base >= 3.0.6',
     'vsc-config >= 3.7.2',
     'vsc-filesystems >= 1.0.1',
-    'vsc-ldap >= 2.1.4',
-    'vsc-ldap-extension >= 2.0.0',
     'vsc-utils >= 2.0.0',
     'lockfile >= 0.9.1',
 ]
@@ -44,7 +42,7 @@ else:
 
 
 PACKAGE = {
-    'version': '2.6.0',
+    'version': '3.0.0',
     'author': [ag, jt],
     'maintainer': [ag, jt],
     'tests_require': ['mock'],
