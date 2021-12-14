@@ -160,7 +160,8 @@ class Tier1SlurmProjectSync(Sync):
         slurm_qos_info = get_slurm_acct_info(SyncTypes.qos)
 
         # The projects do not track active state of users, so we need to fetch all accounts as well
-        active_accounts = set([a.vsc_id for a in self.get_accounts()[0]])
+        # we cannot use the self.get_accounts, as this implies using a timestamp for a modification date
+        active_accounts = set([a["vsc_id"] for a in self.apc.account.get()[1] if a["isactive"] == True])
 
         logging.debug("%d accounts found", len(slurm_account_info))
         logging.debug("%d users found", len(slurm_user_info))
