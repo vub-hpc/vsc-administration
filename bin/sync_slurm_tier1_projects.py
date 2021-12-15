@@ -96,24 +96,21 @@ def get_projects(projects_ini):
 
         logging.info("processing section %s", section)
         if section in VSC_ADMIN_GROUPS:
-            projects.append(ProjectIniConfig(
-                name=section,
-                group=section,
-                end_date=projects_config.get(section, "end_date"),
-                members=[m.strip() for m in projects_config.get(section, "members").split(",")],
-                cpu_hours=int(projects_config.get(section, "CPUhours", fallback=0)),
-                gpu_hours=int(projects_config.get(section, "GPUhours", fallback=0)),
-            ))
-
+            project_name = section
         elif section.startswith('gpr_compute'):
-            projects.append(ProjectIniConfig(
-                name=section.replace("gpr_compute_", ""),
-                group=section,
-                end_date=projects_config.get(section, "end_date"),
-                members=[m.strip() for m in projects_config.get(section, "members").split(",")],
-                cpu_hours=int(projects_config.get(section, "CPUhours", fallback=0)),
-                gpu_hours=int(projects_config.get(section, "GPUhours", fallback=0)),
-            ))
+            project_name = section.replace("gpr_compute_", "")
+        else:
+            logging.warning("Project [%s] skipped, name does not match criteria", section)
+            continue
+
+        projects.append(ProjectIniConfig(
+            name=project_name,
+            group=section,
+            end_date=projects_config.get(section, "end_date"),
+            members=[m.strip() for m in projects_config.get(section, "members").split(",")],
+            cpu_hours=int(projects_config.get(section, "CPUhours", fallback=0)),
+            gpu_hours=int(projects_config.get(section, "GPUhours", fallback=0)),
+        ))
 
     return (active_projects, past_projects)
 
