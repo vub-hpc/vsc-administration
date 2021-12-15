@@ -39,6 +39,8 @@ SLURM_ORGANISATIONS = {
 class SacctMgrException(Exception):
     pass
 
+class SlurmSyncException(Exception):
+    pass
 
 class SyncTypes(Enum):
     accounts = "accounts"
@@ -608,12 +610,16 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
             # these are the Slurm users that should no longer be associated with the project
             remove_project_users |= set([(user, project_name) for user in slurm_project_users - members])
 
-        # these are the users not in any project
+        logging.info("%d new users", len(new_users))
+        logging.info("%d removed project users", len(remove_project_users))
+
+        # these are the users not in any project, we should decide if we want any of those
         remove_slurm_users = set([u[0] for u in cluster_users_acct]) - all_project_users
 
-        logging.debug("%d new users", len(new_users))
-        logging.debug("%d removed project users", len(remove_project_users))
-        logging.debug("%d removed slurm users", len(remove_slurm_users))
+        if remove_slurm_users:
+            logging.warning(
+                "Number of slurm users not in projecs: %d > 0: %s", len(remove_slurm_users), remove_slurm_users
+            )
 
         commands.extend([create_add_user_command(
             user=user,
