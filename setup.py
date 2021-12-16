@@ -36,6 +36,10 @@ install_requires = [
 if sys.version_info < (3, 0):
     # enum34 is only required with Python 2
     install_requires.append('enum34')
+    install_requires.append('python-ldap < 3.3.0')
+else:
+    install_requires.append('python-ldap')
+
 
 PACKAGE = {
     'version': '3.0.0',
