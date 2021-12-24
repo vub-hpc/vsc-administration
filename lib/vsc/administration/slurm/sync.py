@@ -486,12 +486,12 @@ def slurm_project_qos(projects, slurm_qos_info, clusters):
             qos_name = "{0}-{1}".format(cluster, project.name)
             if qos_name not in cluster_qos_names:
                 commands.append(create_add_qos_command(qos_name))
-                commands.append(create_modify_qos_command(qos_name, {
-                    "GRPTRESMins": "cpu={cpuminutes},gpu={gpuminutes}".format(
-                        cpuminutes=60*int(project.cpu_hours)
-                            + TIER1_GPU_TO_CPU_HOURS_RATE * 60 * int(project.gpu_hours),
-                        gpuminutes=60*int(project.gpu_hours))
-                    }))
+            commands.append(create_modify_qos_command(qos_name, {
+                "GRPTRESMins": "cpu={cpuminutes},gpu={gpuminutes}".format(
+                    cpuminutes=60*int(project.cpu_hours)
+                        + TIER1_GPU_TO_CPU_HOURS_RATE * 60 * int(project.gpu_hours),
+                    gpuminutes=60*int(project.gpu_hours))
+                }))
 
             # TODO: if we pass a cutoff date, we need to alter the hours if less was spent
 
