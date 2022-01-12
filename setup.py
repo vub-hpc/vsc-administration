@@ -42,7 +42,11 @@ else:
 
 
 PACKAGE = {
+<<<<<<< HEAD
     'version': '3.1.0',
+=======
+    'version': '2.6.0',
+>>>>>>> 739b980dcf990875001b5523a4cdc3b97e2a8a93
     'author': [ag, jt],
     'maintainer': [ag, jt],
     'tests_require': ['mock'],
