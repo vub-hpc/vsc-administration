@@ -309,7 +309,6 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
         "user",
         "name={0}".format(user),
         "Account={0}".format(current_vo_id),
-        "where",
         "Cluster={0}".format(cluster),
     ]
     logging.debug(
@@ -334,7 +333,6 @@ def create_remove_user_command(user, cluster):
         "delete",
         "user",
         "name={user}".format(user=user),
-        "where",
         "Cluster={cluster}".format(cluster=cluster)
     ]
     logging.debug(
@@ -381,7 +379,6 @@ def create_remove_user_account_command(user, account, cluster):
         "user",
         "Name={user}".format(user=user),
         "Account={account}".format(account=account),
-        "where",
         "Cluster={cluster}".format(cluster=cluster)
     ]
     logging.debug(

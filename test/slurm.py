@@ -146,8 +146,8 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/sacctmgr -i add user user4 Account=gpr_compute_project2 Cluster=mycluster"),
             shlex.split("/usr/bin/sacctmgr -i add user user6 Account=gpr_compute_project2 Cluster=mycluster"),
             shlex.split("/usr/bin/sacctmgr -i add user user3 Account=gpr_compute_project1 Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i delete user Name=user3 Account=gpr_compute_project2 where Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i delete user Name=user4 Account=gpr_compute_project1 where Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i delete user Name=user3 Account=gpr_compute_project2 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i delete user Name=user4 Account=gpr_compute_project1 Cluster=mycluster"),
         ]]))
 
 
@@ -197,10 +197,10 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/sacctmgr -i delete user name=user2 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i add user user3 Account=vo1 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i modify user Name=user3 Cluster=banette set DefaultAccount=vo1"),
-            shlex.split("/usr/bin/sacctmgr -i delete user name=user3 Account=vo2 where Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i delete user name=user3 Account=vo2 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i add user user4 Account=vo2 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i modify user Name=user4 Cluster=banette set DefaultAccount=vo2"),
-            shlex.split("/usr/bin/sacctmgr -i delete user name=user4 Account=vo1 where Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i delete user name=user4 Account=vo1 Cluster=banette"),
         ]]))
 
 
