@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2021 Ghent University
+# Copyright 2013-2022 Ghent University
 #
 # This file is part of vsc-administration,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -269,12 +269,39 @@ def create_add_user_command(user, account, cluster, default_account=None):
     return create_user_command
 
 
-def create_change_user_command(user, current_vo_id, new_vo_id, cluster, default_account=None):
+def create_default_account_command(user, account, cluster):
+    """Creates the command the set a default account for a user.
+
+    @param user: the user name in Slurm
+    @param accont: the account name in Slurm
+    @param cluster: cluster for which the user sets a default account
+    """
+    create_default_account_command = [
+        SLURM_SACCT_MGR,
+        "-i",
+        "modify",
+        "user",
+        "Name={0}".format(user),
+        "Cluster={0}".format(cluster),
+        "set",
+        "DefaultAccount={0}".format(account),
+    ]
+    logging.debug(
+        "Creating command to set default account to %s for %s on cluster %s",
+        account,
+        user,
+        cluster)
+
+    return create_default_account_command
+
+
+def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
     """Creates the commands to change a user's account.
 
     @returns: two lists comprising the commands
     """
-    add_user_command = create_add_user_command(user, new_vo_id, cluster, default_account)
+    add_user_command = create_add_user_command(user, new_vo_id, cluster)
+    set_default_account_command = create_default_account_command(user, new_vo_id, cluster)
     remove_association_user_command = [
         SLURM_SACCT_MGR,
         "-i",   # commit immediately
@@ -282,7 +309,6 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster, default_
         "user",
         "name={0}".format(user),
         "Account={0}".format(current_vo_id),
-        "where",
         "Cluster={0}".format(cluster),
     ]
     logging.debug(
@@ -293,7 +319,7 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster, default_
         new_vo_id
         )
 
-    return [add_user_command, remove_association_user_command]
+    return [add_user_command, set_default_account_command, remove_association_user_command]
 
 
 def create_remove_user_command(user, cluster):
@@ -307,7 +333,6 @@ def create_remove_user_command(user, cluster):
         "delete",
         "user",
         "name={user}".format(user=user),
-        "where",
         "Cluster={cluster}".format(cluster=cluster)
     ]
     logging.debug(
@@ -354,7 +379,6 @@ def create_remove_user_account_command(user, account, cluster):
         "user",
         "Name={user}".format(user=user),
         "Account={account}".format(account=account),
-        "where",
         "Cluster={cluster}".format(cluster=cluster)
     ]
     logging.debug(
@@ -714,8 +738,7 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
             user=user,
             current_vo_id=current_vo_id,
             new_vo_id=new_vo_id,
-            cluster=cluster,
-            default_account=new_vo_id) for (user, current_vo_id, (new_vo_id, _)) in moved_users])
+            cluster=cluster) for (user, current_vo_id, (new_vo_id, _)) in moved_users])
         )
 
     return commands
