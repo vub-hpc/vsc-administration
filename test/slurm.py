@@ -91,36 +91,10 @@ class SlurmSyncTestGent(TestCase):
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project3 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project3"),
             shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project4 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project4"),
+            shlex.split('/usr/bin/squeue --cluster=mycluster --account=gpr_compute_project5 -o %A -t PD | grep "^[0-9]" | xargs scancel'),
+            shlex.split('/usr/bin/squeue --cluster=mycluster --account=gpr_compute_project7 -o %A -t PD | grep "^[0-9]" | xargs scancel'),
             shlex.split("/usr/bin/sacctmgr -i delete account Name=gpr_compute_project5 Cluster=mycluster"),
             shlex.split("/usr/bin/sacctmgr -i delete account Name=gpr_compute_project7 Cluster=mycluster"),
-        ]]))
-
-    def test_slurm_project_accounts_with_jobs(self):
-        """
-        Test the creation of the the command required to sync projects when removed projects
-        still have jobs running or queued.
-        """
-
-        RAP = namedtuple("RAP", ["name"])
-
-        resource_app_projects = [
-            RAP(name="gpr_compute_project1"),
-            RAP(name="gpr_compute_project2"),
-        ]
-
-        SAI = namedtuple("SAI", ["Account", "Share", "Cluster"])
-
-        slurm_account_info = [
-            SAI(Account="gpr_compute_project1", Share=1, Cluster="mycluster"),
-            SAI(Account="gpr_compute_project2", Share=1, Cluster="mycluster"),
-            SAI(Account="gpr_compute_project3", Share=1, Cluster="mycluster"),
-        ]
-
-        commands = slurm_project_accounts(resource_app_projects, slurm_account_info, ["mycluster"], ["some_project"])
-
-        self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
-            shlex.split('/usr/bin/squeue --cluster=mycluster --account=gpr_compute_project3 -o %A -t PD | grep "^[0-9]" | xargs scancel'),
-            shlex.split("/usr/bin/sacctmgr -i delete account Name=gpr_compute_project3 Cluster=mycluster"),
         ]]))
 
     def test_slurm_project_qos(self):
