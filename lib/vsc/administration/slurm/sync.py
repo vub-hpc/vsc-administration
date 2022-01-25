@@ -27,6 +27,7 @@ from vsc.utils.run import asyncloop
 
 
 SLURM_SACCT_MGR = "/usr/bin/sacctmgr"
+SLURM_SCANCEL = "/usr/bin/scancel"
 
 SLURM_ORGANISATIONS = {
     ANTWERPEN: 'uantwerpen',
@@ -344,6 +345,28 @@ def create_remove_user_command(user, cluster):
     return remove_user_command
 
 
+def create_remove_jobs_for_account_command(account, cluster):
+    """Create the command to remove queued/suspended jobs from users that are
+    in the account that needs to be removed.
+
+    @returns: list comprising the account
+    """
+    remove_jobs_command_pending = [
+        SLURM_SCANCEL,
+        "--cluster={cluster}".format(cluster=cluster),
+        "--account={account}".format(account=account),
+        "--state=PENDING",
+    ]
+    remove_jobs_command_suspended = [
+        SLURM_SCANCEL,
+        "--cluster={cluster}".format(cluster=cluster),
+        "--account={account}".format(account=account),
+        "--state=SUSPENDED",
+    ]
+
+    return [remove_jobs_command_pending, remove_jobs_command_suspended]
+
+
 def create_remove_account_command(account, cluster):
     """Create the command to remove an account.
 
@@ -552,6 +575,9 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, 
 
         for project_name in cluster_accounts - resource_app_project_names:
             if project_name not in protected_accounts:
+                commands.extend(create_remove_jobs_for_account_command(
+                    account=project_name,
+                    cluster=cluster))
                 commands.append(create_remove_account_command(
                     account=project_name,
                     cluster=cluster))

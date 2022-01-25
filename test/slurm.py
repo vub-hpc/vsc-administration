@@ -91,10 +91,13 @@ class SlurmSyncTestGent(TestCase):
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project3 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project3"),
             shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project4 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project4"),
+            shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project5 --state=PENDING"),
+            shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project5 --state=SUSPENDED"),
+            shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project7 --state=PENDING"),
+            shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project7 --state=SUSPENDED"),
             shlex.split("/usr/bin/sacctmgr -i delete account Name=gpr_compute_project5 Cluster=mycluster"),
             shlex.split("/usr/bin/sacctmgr -i delete account Name=gpr_compute_project7 Cluster=mycluster"),
         ]]))
-
 
     def test_slurm_project_qos(self):
 
