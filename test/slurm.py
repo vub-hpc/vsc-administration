@@ -119,7 +119,7 @@ class SlurmSyncTestGent(TestCase):
         commands = slurm_project_accounts(resource_app_projects, slurm_account_info, ["mycluster"], ["some_project"])
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
-            shlex.split('squeue --cluster=mycluster --account=gpr_compute_project3 -o %A -t PD | grep "^[0-9]" | xargs scancel'),
+            shlex.split('/usr/bin/squeue --cluster=mycluster --account=gpr_compute_project3 -o %A -t PD | grep "^[0-9]" | xargs scancel'),
             shlex.split("/usr/bin/sacctmgr -i delete account Name=gpr_compute_project3 Cluster=mycluster"),
         ]]))
 

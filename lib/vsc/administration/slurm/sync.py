@@ -27,6 +27,7 @@ from vsc.utils.run import asyncloop
 
 
 SLURM_SACCT_MGR = "/usr/bin/sacctmgr"
+SLURM_SQUEUE = "/usr/bin/squeue"
 
 SLURM_ORGANISATIONS = {
     ANTWERPEN: 'uantwerpen',
