@@ -361,7 +361,7 @@ def create_remove_jobs_for_account_command(account, cluster):
         "PD",
         "|",
         "grep",
-        '"^[0-9]"',
+        "'^[0-9]'",
         "|",
         "xargs",
         "scancel",
