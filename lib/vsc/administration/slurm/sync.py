@@ -344,6 +344,32 @@ def create_remove_user_command(user, cluster):
     return remove_user_command
 
 
+def create_remove_jobs_for_account_command(account, cluster):
+    """Create the command to remove queued/running jobs from users that are
+    in the account that needs to be removed.
+
+    @returns: list comprising the account
+    """
+    remove_jobs_command = [
+        SLURM_SQUEUE,
+        "--cluster={cluster}".format(cluster=cluster),
+        "--account={account}".format(account=account),
+        "-o",
+        "%A",
+        "-t",
+        "PD",
+        "|",
+        "grep",
+        '"^[0-9]"',
+        "|",
+        "xargs",
+        "scancel",
+    ]
+
+    return remove_jobs_command
+
+
+
 def create_remove_account_command(account, cluster):
     """Create the command to remove an account.
 
@@ -552,6 +578,9 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, 
 
         for project_name in cluster_accounts - resource_app_project_names:
             if project_name not in protected_accounts:
+                commands.append(create_remove_jobs_for_account_command(
+                    account=project_name,
+                    cluster=cluster))
                 commands.append(create_remove_account_command(
                     account=project_name,
                     cluster=cluster))
