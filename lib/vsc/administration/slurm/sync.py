@@ -303,6 +303,11 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
     """
     add_user_command = create_add_user_command(user, new_vo_id, cluster)
     set_default_account_command = create_default_account_command(user, new_vo_id, cluster)
+    remove_former_association_jobs_command = create_remove_user_jobs_command(
+        user=user,
+        cluster=cluster,
+        account=current_vo_id
+    )
     remove_association_user_command = [
         SLURM_SACCT_MGR,
         "-i",   # commit immediately
@@ -320,7 +325,12 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
         new_vo_id
         )
 
-    return [add_user_command, set_default_account_command, remove_association_user_command]
+    return [
+        add_user_command, 
+        set_default_account_command, 
+        remove_former_association_jobs_command,
+        remove_association_user_command
+    ]
 
 
 def create_remove_user_command(user, cluster):
@@ -345,7 +355,7 @@ def create_remove_user_command(user, cluster):
     return remove_user_command
 
 
-def create_remove_user_jobs_command(user, cluster, state):
+def create_remove_user_jobs_command(user, cluster, state=None, account=None):
     """Create the command to remove a user's jobs in the given state.
 
     @returns: a list comprising the command
@@ -354,8 +364,13 @@ def create_remove_user_jobs_command(user, cluster, state):
         SLURM_SCANCEL,
         "--cluster={cluster}".format(cluster=cluster),
         "--user={user}".format(user=user),
-        "--state={state}".format(state=state),
     ]
+
+    if state is not None:
+        remove_user_jobs_command.append("--state={state}".format(state=state))
+
+    if account is not None:
+        remove_user_jobs_command.append("--account={account}".format(account=account))
 
     return remove_user_jobs_command
 
@@ -769,8 +784,7 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
             cluster=cluster,
             default_account=vo_id) for (user, vo_id, _) in new_users
         ])
-        commands.extend([create_remove_user_jobs_command(user=user, cluster=cluster, state="PENDING") for user in remove_users])
-        commands.extend([create_remove_user_jobs_command(user=user, cluster=cluster, state="SUSPENDED") for user in remove_users])
+        commands.extend([create_remove_user_jobs_command(user=user, cluster=cluster) for user in remove_users])
         commands.extend([create_remove_user_command(user=user, cluster=cluster) for user in remove_users])
 
         def flatten(ls):
