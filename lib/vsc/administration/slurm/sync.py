@@ -306,7 +306,7 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
     remove_former_association_jobs_command = create_remove_user_jobs_command(
         user=user,
         cluster=cluster,
-        account=current_vo_id
+        account=current_vo_id,
     )
     remove_association_user_command = [
         SLURM_SACCT_MGR,
@@ -326,8 +326,8 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
         )
 
     return [
-        add_user_command, 
-        set_default_account_command, 
+        add_user_command,
+        set_default_account_command,
         remove_former_association_jobs_command,
         remove_association_user_command
     ]
