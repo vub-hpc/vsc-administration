@@ -345,6 +345,21 @@ def create_remove_user_command(user, cluster):
     return remove_user_command
 
 
+def create_remove_user_jobs_command(user, cluster, state):
+    """Create the command to remove a user's jobs in the given state.
+
+    @returns: a list comprising the command
+    """
+    remove_user_jobs_command = [
+        SLURM_SCANCEL,
+        "--cluster={cluster}".format(cluster=cluster),
+        "--user={user}".format(user=user),
+        "--state={state}".format(state=state),
+    ]
+
+    return remove_user_jobs_command
+
+
 def create_remove_jobs_for_account_command(account, cluster):
     """Create the command to remove queued/suspended jobs from users that are
     in the account that needs to be removed.
@@ -754,6 +769,8 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
             cluster=cluster,
             default_account=vo_id) for (user, vo_id, _) in new_users
         ])
+        commands.extend([create_remove_user_jobs_command(user=user, cluster=cluster, state="PENDING") for user in remove_users])
+        commands.extend([create_remove_user_jobs_command(user=user, cluster=cluster, state="SUSPENDED") for user in remove_users])
         commands.extend([create_remove_user_command(user=user, cluster=cluster) for user in remove_users])
 
         def flatten(ls):
