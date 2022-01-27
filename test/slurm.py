@@ -155,6 +155,9 @@ class SlurmSyncTestGent(TestCase):
         )
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
+            shlex.split("/usr/bin/sacctmgr -i add user user4 Account=default_account Cluster=mycluster DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user6 Account=default_account Cluster=mycluster DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=default_account Cluster=mycluster DefaultAccount=default_account"),
             shlex.split("/usr/bin/sacctmgr -i add user user4 Account=gpr_compute_project2 Cluster=mycluster"),
             shlex.split("/usr/bin/sacctmgr -i add user user6 Account=gpr_compute_project2 Cluster=mycluster"),
             shlex.split("/usr/bin/sacctmgr -i add user user3 Account=gpr_compute_project1 Cluster=mycluster"),

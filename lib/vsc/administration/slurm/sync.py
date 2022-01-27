@@ -713,7 +713,8 @@ def slurm_project_users_accounts(
         commands.extend([create_add_user_command(
             user=user,
             account=default_account,
-            cluster=cluster) for user in new_users - cluster_users_with_default_account
+            default_account=default_account,
+            cluster=cluster) for (user, _) in new_users if user not in cluster_users_with_default_account
         ])
 
         # create associations for the actual project's new users
