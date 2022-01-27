@@ -143,7 +143,14 @@ class SlurmSyncTestGent(TestCase):
             SlurmUser(User='user5', Def_Acct='gpr_compute_project2', Admin='None', Cluster='mycluster', Account='gpr_compute_project2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
         ]
 
-        commands = slurm_project_users_accounts(project_members, active_accounts, slurm_user_info, ["mycluster"])
+        commands = slurm_project_users_accounts(
+            project_members, 
+            active_accounts, 
+            slurm_user_info, 
+            ["mycluster"],
+            default_account="default_account",
+            protected_accounts=("protected_account1", "protected_acocunt2")
+        )
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add user user4 Account=gpr_compute_project2 Cluster=mycluster"),
