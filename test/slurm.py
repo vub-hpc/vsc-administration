@@ -136,8 +136,10 @@ class SlurmSyncTestGent(TestCase):
 
         active_accounts = set(["user1", "user3", "user4", "user5", "user6", "user7"])
         slurm_user_info = [
-            SlurmUser(User='user1', Def_Acct='gpr_compute_project1', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user1', Def_Acct='default_account', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user1', Def_Acct='default_account', Admin='None', Cluster='mycluster', Account='default_account', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
             SlurmUser(User='user2', Def_Acct='gpr_compute_project1', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user2', Def_Acct='default_account', Admin='None', Cluster='mycluster', Account='default_account', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
             SlurmUser(User='user4', Def_Acct='gpr_compute_project1', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
             SlurmUser(User='user3', Def_Acct='gpr_compute_project2', Admin='None', Cluster='mycluster', Account='gpr_compute_project2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
             SlurmUser(User='user5', Def_Acct='gpr_compute_project2', Admin='None', Cluster='mycluster', Account='gpr_compute_project2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
