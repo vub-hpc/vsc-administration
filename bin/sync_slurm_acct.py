@@ -39,6 +39,9 @@ NAGIOS_CHECK_INTERVAL_THRESHOLD = 60 * 60  # 60 minutes
 SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
 SYNC_SLURM_ACCT_LOGFILE = "/var/log/%s.log" % (NAGIOS_HEADER)
 
+class SyncSanityError(Exception):
+    pass
+
 
 def execute_commands(commands):
     """Run the specified commands"""
@@ -132,13 +135,20 @@ def main():
         sacctmgr_commands += slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_institute)
 
         # process VO members
-        sacctmgr_commands += slurm_user_accounts(
+        [job_cancel_commands, user_commands] = slurm_user_accounts(
             account_page_members,
             active_accounts,
             slurm_user_info,
             clusters,
             opts.options.dry_run
         )
+
+        # safety to avoid emptying the cluster due to some error upstream
+        if len(job_cancel_commands > 5):
+            raise SyncSanityError("Would cancel jobs for %d users" % len(job_cancel_commands))
+
+        sacctmgr_commands += job_cancel_commands
+        sacctmgr_commands += user_commands
 
         logging.info("Executing %d commands", len(sacctmgr_commands))
 

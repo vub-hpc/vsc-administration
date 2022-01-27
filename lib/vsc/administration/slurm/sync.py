@@ -720,6 +720,7 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
     @returns: list of sacctmgr commands to add the users if needed.
     """
     commands = []
+    job_cancel_commands = []
 
     active_vo_members = set()
     reverse_vo_mapping = dict()
@@ -791,11 +792,14 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
             """Turns a list of lists (ls) into a list, a.k.a. flatten a list."""
             return [item for l in ls for item in l]
 
-        commands.extend(flatten([create_change_user_command(
-            user=user,
-            current_vo_id=current_vo_id,
-            new_vo_id=new_vo_id,
-            cluster=cluster) for (user, current_vo_id, (new_vo_id, _)) in moved_users])
-        )
+        for (user, current_vo_id, (new_vo_id, _)) in moved_users:
+            [add, default_account, remove_jobs, remove_association_user] = create_change_user_command(
+                user=user,
+                current_vo_id=current_vo_id,
+                new_vo_id=new_vo_id,
+                cluster=cluster
+            )
+            commands.extend([add, default_account, remove_association_user])
+            job_cancel_commands.append(remove_jobs)
 
-    return commands
+    return [job_cancel_commands, commands]
