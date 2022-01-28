@@ -197,18 +197,20 @@ class SlurmSyncTestGent(TestCase):
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add user user6 Account=vo2 Cluster=banette DefaultAccount=vo2"),
-            shlex.split("/usr/bin/scancel --cluster=banette --user=user2"),
             shlex.split("/usr/bin/sacctmgr -i delete user name=user2 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i add user user3 Account=vo1 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i modify user Name=user3 Cluster=banette set DefaultAccount=vo1"),
-            shlex.split("/usr/bin/scancel --cluster=banette --user=user3 --account=vo2"),
             shlex.split("/usr/bin/sacctmgr -i delete user name=user3 Account=vo2 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i add user user4 Account=vo2 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i modify user Name=user4 Cluster=banette set DefaultAccount=vo2"),
-            shlex.split("/usr/bin/scancel --cluster=banette --user=user4 --account=vo1"),
             shlex.split("/usr/bin/sacctmgr -i delete user name=user4 Account=vo1 Cluster=banette"),
         ]]))
 
+        self.assertEqual(set([tuple(x) for x in job_cancel_commands]), set([tuple(x) for x in [
+            shlex.split("/usr/bin/scancel --cluster=banette --user=user2"),
+            shlex.split("/usr/bin/scancel --cluster=banette --user=user3 --account=vo2"),
+            shlex.split("/usr/bin/scancel --cluster=banette --user=user4 --account=vo1"),
+        ]]))
 
     def test_parse_slurmm_acct_dump(self):
         """Test that the sacctmgr output is correctly processed."""
