@@ -83,7 +83,13 @@ def main():
             "strlist",
             'store',
             [PRODUCTION, PILOT]
-        )
+        ),
+        'force': (
+            'Force the sync instead of bailing if too many scancel commands would be issues',
+            None,
+            'store_true',
+            False
+        ),
     }
 
     opts = ExtendedSimpleOption(options)
@@ -144,7 +150,7 @@ def main():
         )
 
         # safety to avoid emptying the cluster due to some error upstream
-        if len(job_cancel_commands > 5):
+        if not opts.options.force and len(job_cancel_commands > 5):
             raise SyncSanityError("Would cancel jobs for %d users" % len(job_cancel_commands))
 
         sacctmgr_commands += job_cancel_commands
