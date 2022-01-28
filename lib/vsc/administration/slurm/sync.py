@@ -785,7 +785,9 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
             cluster=cluster,
             default_account=vo_id) for (user, vo_id, _) in new_users
         ])
-        job_cancel_commands.extend([create_remove_user_jobs_command(user=user, cluster=cluster) for user in remove_users])
+        job_cancel_commands.extend([
+            create_remove_user_jobs_command(user=user, cluster=cluster) for user in remove_users
+        ])
         commands.extend([create_remove_user_command(user=user, cluster=cluster) for user in remove_users])
 
         for (user, current_vo_id, (new_vo_id, _)) in moved_users:
