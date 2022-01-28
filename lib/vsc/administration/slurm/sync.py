@@ -788,10 +788,6 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
         commands.extend([create_remove_user_jobs_command(user=user, cluster=cluster) for user in remove_users])
         commands.extend([create_remove_user_command(user=user, cluster=cluster) for user in remove_users])
 
-        def flatten(ls):
-            """Turns a list of lists (ls) into a list, a.k.a. flatten a list."""
-            return [item for l in ls for item in l]
-
         for (user, current_vo_id, (new_vo_id, _)) in moved_users:
             [add, default_account, remove_jobs, remove_association_user] = create_change_user_command(
                 user=user,
