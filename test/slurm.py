@@ -121,9 +121,9 @@ class SlurmSyncTestGent(TestCase):
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add qos Name=mycluster-gpr_compute_project1"),
             shlex.split("/usr/bin/sacctmgr -i add qos Name=mycluster-gpr_compute_project2"),
-            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project1 set flags=NoDecay,DenyOnLimit GRPTRESMins=cpu=2280,gpu=180"),
-            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project2 set flags=NoDecay,DenyOnLimit GRPTRESMins=cpu=300,gpu=0"),
-            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project3 set flags=NoDecay,DenyOnLimit GRPTRESMins=cpu=240,gpu=0"),
+            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project1 set flags=NoDecay,DenyOnLimit GRPTRESMins=cpu=2280,gres/gpu=180"),
+            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project2 set flags=NoDecay,DenyOnLimit GRPTRESMins=cpu=300,gres/gpu=0"),
+            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project3 set flags=NoDecay,DenyOnLimit GRPTRESMins=cpu=240,gres/gpu=0"),
             shlex.split("/usr/bin/sacctmgr -i remove qos where Name=mycluster-gpr_compute_project4"),
         ]]))
 
