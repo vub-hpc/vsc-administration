@@ -42,7 +42,7 @@ else:
 
 
 PACKAGE = {
-    'version': '3.3.0',
+    'version': '3.3.1',
     'author': [ag, jt],
     'maintainer': [ag, jt],
     'tests_require': ['mock'],
