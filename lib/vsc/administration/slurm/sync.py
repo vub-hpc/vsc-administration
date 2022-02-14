@@ -303,6 +303,11 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
     """
     add_user_command = create_add_user_command(user, new_vo_id, cluster)
     set_default_account_command = create_default_account_command(user, new_vo_id, cluster)
+    remove_former_association_jobs_command = create_remove_user_jobs_command(
+        user=user,
+        cluster=cluster,
+        account=current_vo_id,
+    )
     remove_association_user_command = [
         SLURM_SACCT_MGR,
         "-i",   # commit immediately
@@ -320,7 +325,12 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
         new_vo_id
         )
 
-    return [add_user_command, set_default_account_command, remove_association_user_command]
+    return [
+        add_user_command,
+        set_default_account_command,
+        remove_former_association_jobs_command,
+        remove_association_user_command
+    ]
 
 
 def create_remove_user_command(user, cluster):
@@ -343,6 +353,26 @@ def create_remove_user_command(user, cluster):
         )
 
     return remove_user_command
+
+
+def create_remove_user_jobs_command(user, cluster, state=None, account=None):
+    """Create the command to remove a user's jobs in the given state.
+
+    @returns: a list comprising the command
+    """
+    remove_user_jobs_command = [
+        SLURM_SCANCEL,
+        "--cluster={cluster}".format(cluster=cluster),
+        "--user={user}".format(user=user),
+    ]
+
+    if state is not None:
+        remove_user_jobs_command.append("--state={state}".format(state=state))
+
+    if account is not None:
+        remove_user_jobs_command.append("--account={account}".format(account=account))
+
+    return remove_user_jobs_command
 
 
 def create_remove_jobs_for_account_command(account, cluster):
@@ -690,6 +720,7 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
     @returns: list of sacctmgr commands to add the users if needed.
     """
     commands = []
+    job_cancel_commands = []
 
     active_vo_members = set()
     reverse_vo_mapping = dict()
@@ -754,17 +785,19 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
             cluster=cluster,
             default_account=vo_id) for (user, vo_id, _) in new_users
         ])
+        job_cancel_commands.extend([
+            create_remove_user_jobs_command(user=user, cluster=cluster) for user in remove_users
+        ])
         commands.extend([create_remove_user_command(user=user, cluster=cluster) for user in remove_users])
 
-        def flatten(ls):
-            """Turns a list of lists (ls) into a list, a.k.a. flatten a list."""
-            return [item for l in ls for item in l]
+        for (user, current_vo_id, (new_vo_id, _)) in moved_users:
+            [add, default_account, remove_jobs, remove_association_user] = create_change_user_command(
+                user=user,
+                current_vo_id=current_vo_id,
+                new_vo_id=new_vo_id,
+                cluster=cluster
+            )
+            commands.extend([add, default_account, remove_association_user])
+            job_cancel_commands.append(remove_jobs)
 
-        commands.extend(flatten([create_change_user_command(
-            user=user,
-            current_vo_id=current_vo_id,
-            new_vo_id=new_vo_id,
-            cluster=cluster) for (user, current_vo_id, (new_vo_id, _)) in moved_users])
-        )
-
-    return commands
+    return [job_cancel_commands, commands]
