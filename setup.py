@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: latin-1 -*-
 ##
-# Copyright 2012-2013 Ghent University
+# Copyright 2012-2022 Ghent University
 #
 # This file is part of vsc-administration,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -42,7 +42,7 @@ else:
 
 
 PACKAGE = {
-    'version': '3.3.1',
+    'version': '3.4.1',
     'author': [ag, jt],
     'maintainer': [ag, jt],
     'tests_require': ['mock'],
