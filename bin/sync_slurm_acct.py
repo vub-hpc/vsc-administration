@@ -151,6 +151,7 @@ def main():
 
         # safety to avoid emptying the cluster due to some error upstream
         if not opts.options.force and len(job_cancel_commands > 5):
+            logging.error("Aborting, would otherwise cancel jobs for %d users", len(job_cancel_commands))
             raise SyncSanityError("Would cancel jobs for %d users" % len(job_cancel_commands))
 
         sacctmgr_commands += job_cancel_commands
