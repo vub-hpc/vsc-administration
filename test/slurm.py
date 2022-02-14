@@ -205,22 +205,24 @@ class SlurmSyncTestGent(TestCase):
             SlurmUser(User='user5', Def_Acct='vo2', Admin='None', Cluster='banette', Account='vo2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
         ]
 
-        commands = slurm_user_accounts(vo_members, active_accounts, slurm_user_info, ["banette"])
+        (job_cancel_commands, commands) = slurm_user_accounts(vo_members, active_accounts, slurm_user_info, ["banette"])
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add user user6 Account=vo2 Cluster=banette DefaultAccount=vo2"),
-            shlex.split("/usr/bin/scancel --cluster=banette --user=user2"),
             shlex.split("/usr/bin/sacctmgr -i delete user name=user2 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i add user user3 Account=vo1 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i modify user Name=user3 Cluster=banette set DefaultAccount=vo1"),
-            shlex.split("/usr/bin/scancel --cluster=banette --user=user3 --account=vo2"),
             shlex.split("/usr/bin/sacctmgr -i delete user name=user3 Account=vo2 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i add user user4 Account=vo2 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i modify user Name=user4 Cluster=banette set DefaultAccount=vo2"),
-            shlex.split("/usr/bin/scancel --cluster=banette --user=user4 --account=vo1"),
             shlex.split("/usr/bin/sacctmgr -i delete user name=user4 Account=vo1 Cluster=banette"),
         ]]))
 
+        self.assertEqual(set([tuple(x) for x in job_cancel_commands]), set([tuple(x) for x in [
+            shlex.split("/usr/bin/scancel --cluster=banette --user=user2"),
+            shlex.split("/usr/bin/scancel --cluster=banette --user=user3 --account=vo2"),
+            shlex.split("/usr/bin/scancel --cluster=banette --user=user4 --account=vo1"),
+        ]]))
 
     def test_parse_slurmm_acct_dump(self):
         """Test that the sacctmgr output is correctly processed."""
