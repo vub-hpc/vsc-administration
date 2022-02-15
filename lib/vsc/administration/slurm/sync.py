@@ -566,7 +566,7 @@ def slurm_project_qos(projects, slurm_qos_info, clusters):
                 "GRPTRESMins": "cpu={cpuminutes},gres/gpu={gpuminutes}".format(
                     cpuminutes=60*int(project.cpu_hours)
                         + TIER1_GPU_TO_CPU_HOURS_RATE * 60 * int(project.gpu_hours),
-                    gpuminutes=60*int(project.gpu_hours))
+                    gpuminutes=max(1, 60*int(project.gpu_hours)))
                 }))
 
             # TODO: if we pass a cutoff date, we need to alter the hours if less was spent
