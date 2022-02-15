@@ -54,7 +54,6 @@ IGNORE_ACCOUNTS = ["root"]
 IGNORE_QOS = ["normal"]
 
 TIER1_GPU_TO_CPU_HOURS_RATE = 12 # 12 cpus per gpu
-TIER1_SLURM_DEFAULT_PROJECT_ACCOUNT = "gt1_default"
 
 # Fields for Slurm 20.11.
 # FIXME: at some point this should be versioned
@@ -653,7 +652,13 @@ def slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_insti
     return commands
 
 
-def slurm_project_users_accounts(project_members, active_accounts, slurm_user_info, clusters):
+def slurm_project_users_accounts(
+    project_members,
+    active_accounts,
+    slurm_user_info,
+    clusters,
+    protected_accounts,
+    default_account):
     """Check if the users are in the project account.
 
     For users in the project:
@@ -674,6 +679,8 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
             (user.User, user.Account) for user in slurm_user_info if user and user.Cluster == cluster
         ]
 
+        protected_users = [u for (u, a) in cluster_users_acct if a in protected_accounts]
+
         new_users = set()
         remove_project_users = set()
         all_project_users = set()
@@ -684,7 +691,7 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
             slurm_project_users = set([user for (user, acct) in cluster_users_acct if acct == project_name])
             all_project_users |= slurm_project_users
 
-            # these users are not yet in the Slurm DBD for any project
+            # these users are not yet in the Slurm DBD for this project
             new_users |= set([(user, project_name) for user in (members & active_accounts) - slurm_project_users])
 
             # these are the Slurm users that should no longer be associated with the project
@@ -694,21 +701,39 @@ def slurm_project_users_accounts(project_members, active_accounts, slurm_user_in
         logging.info("%d removed project users", len(remove_project_users))
 
         # these are the users not in any project, we should decide if we want any of those
-        remove_slurm_users = set([u[0] for u in cluster_users_acct]) - all_project_users
+        remove_slurm_users = set([u[0] for u in cluster_users_acct if u not in protected_users]) - all_project_users
 
         if remove_slurm_users:
             logging.warning(
                 "Number of slurm users not in projecs: %d > 0: %s", len(remove_slurm_users), remove_slurm_users
             )
 
+        # create associations in the default account for users that do not already have one
+        cluster_users_with_default_account = set([u for (u, a) in cluster_users_acct if a == default_account])
+        commands.extend([create_add_user_command(
+            user=user,
+            account=default_account,
+            default_account=default_account,
+            cluster=cluster) for (user, _) in new_users if user not in cluster_users_with_default_account
+        ])
+
+        # create associations for the actual project's new users
         commands.extend([create_add_user_command(
             user=user,
             account=project_name,
             cluster=cluster) for (user, project_name) in new_users
         ])
+
+        # kick out users no longer in the project
         commands.extend([
             create_remove_user_account_command(user=user, account=project_name, cluster=cluster)
             for (user, project_name) in remove_project_users
+        ])
+
+        # remove associations in the default account for users no longer in any project
+        commands.extend([
+            create_remove_user_account_command(user=user, account=default_account, cluster=cluster)
+            for user in cluster_users_with_default_account - all_project_users if user not in protected_users
         ])
 
     return commands
