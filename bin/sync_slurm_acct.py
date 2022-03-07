@@ -39,6 +39,8 @@ NAGIOS_CHECK_INTERVAL_THRESHOLD = 60 * 60  # 60 minutes
 SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
 SYNC_SLURM_ACCT_LOGFILE = "/var/log/%s.log" % (NAGIOS_HEADER)
 
+MAX_USERS_JOB_CANCEL = 30
+
 class SyncSanityError(Exception):
     pass
 
@@ -141,7 +143,7 @@ def main():
         sacctmgr_commands += slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_institute)
 
         # process VO members
-        [job_cancel_commands, user_commands] = slurm_user_accounts(
+        (job_cancel_commands, user_commands, association_remove_commands) = slurm_user_accounts(
             account_page_members,
             active_accounts,
             slurm_user_info,
@@ -149,20 +151,37 @@ def main():
             opts.options.dry_run
         )
 
-        # safety to avoid emptying the cluster due to some error upstream
-        if not opts.options.force and len(job_cancel_commands > 5):
-            logging.error("Aborting, would otherwise cancel jobs for %d users", len(job_cancel_commands))
-            raise SyncSanityError("Would cancel jobs for %d users" % len(job_cancel_commands))
-
-        sacctmgr_commands += job_cancel_commands
+        # Adding users takes priority
         sacctmgr_commands += user_commands
-
-        logging.info("Executing %d commands", len(sacctmgr_commands))
 
         if opts.options.dry_run:
             print("Commands to be executed:\n")
             print("\n".join([" ".join(c) for c in sacctmgr_commands]))
         else:
+            logging.info("Executing %d commands", len(sacctmgr_commands))
+            execute_commands(sacctmgr_commands)
+
+        # reset to go on with the remainder of the commands
+        sacctmgr_commands = []
+
+        # safety to avoid emptying the cluster due to some error upstream
+        if not opts.options.force and len(job_cancel_commands) > MAX_USERS_JOB_CANCEL:
+            logging.warning("Would add commands to cancel jobs for %d users", len(job_cancel_commands))
+            logging.debug("Would execute the following cancel commands:")
+            for jc in job_cancel_commands.values():
+                logging.debug("%s", jc)
+            raise SyncSanityError("Would cancel jobs for %d users" % len(job_cancel_commands))
+
+        sacctmgr_commands += [c for cl in job_cancel_commands.values() for c in cl]
+
+        # removing users may fail, so should be done last
+        sacctmgr_commands += association_remove_commands
+
+        if opts.options.dry_run:
+            print("Commands to be executed:\n")
+            print("\n".join([" ".join(c) for c in sacctmgr_commands]))
+        else:
+            logging.info("Executing %d commands", len(sacctmgr_commands))
             execute_commands(sacctmgr_commands)
 
         if not opts.options.dry_run:

@@ -17,6 +17,7 @@ Functions to deploy users to slurm.
 """
 import logging
 
+from collections import defaultdict
 from enum import Enum
 
 from vsc.accountpage.wrappers import mkNamedTupleInstance
@@ -745,7 +746,8 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
     @returns: list of sacctmgr commands to add the users if needed.
     """
     commands = []
-    job_cancel_commands = []
+    job_cancel_commands = defaultdict(list)
+    association_remove_commands = []
 
     active_vo_members = set()
     reverse_vo_mapping = dict()
@@ -810,10 +812,13 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
             cluster=cluster,
             default_account=vo_id) for (user, vo_id, _) in new_users
         ])
-        job_cancel_commands.extend([
-            create_remove_user_jobs_command(user=user, cluster=cluster) for user in remove_users
+
+        for user in remove_users:
+            job_cancel_commands[user].append(create_remove_user_jobs_command(user=user, cluster=cluster))
+
+        association_remove_commands.extend([
+            create_remove_user_command(user=user, cluster=cluster) for user in remove_users
         ])
-        commands.extend([create_remove_user_command(user=user, cluster=cluster) for user in remove_users])
 
         for (user, current_vo_id, (new_vo_id, _)) in moved_users:
             [add, default_account, remove_jobs, remove_association_user] = create_change_user_command(
@@ -822,7 +827,8 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
                 new_vo_id=new_vo_id,
                 cluster=cluster
             )
-            commands.extend([add, default_account, remove_association_user])
-            job_cancel_commands.append(remove_jobs)
+            commands.extend([add, default_account])
+            association_remove_commands.append(remove_association_user)
+            job_cancel_commands[user].append(remove_jobs)
 
-    return [job_cancel_commands, commands]
+    return (job_cancel_commands, commands, association_remove_commands)
