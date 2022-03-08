@@ -39,7 +39,7 @@ NAGIOS_CHECK_INTERVAL_THRESHOLD = 60 * 60  # 60 minutes
 SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
 SYNC_SLURM_ACCT_LOGFILE = "/var/log/%s.log" % (NAGIOS_HEADER)
 
-MAX_USERS_JOB_CANCEL = 30
+MAX_USERS_JOB_CANCEL = 10
 
 class SyncSanityError(Exception):
     pass

@@ -816,6 +816,7 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
         for user in remove_users:
             job_cancel_commands[user].append(create_remove_user_jobs_command(user=user, cluster=cluster))
 
+        # Remove users from the clusters (in all accounts)
         association_remove_commands.extend([
             create_remove_user_command(user=user, cluster=cluster) for user in remove_users
         ])
