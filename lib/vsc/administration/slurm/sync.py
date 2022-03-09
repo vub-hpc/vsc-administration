@@ -550,11 +550,11 @@ def get_cluster_qos(slurm_qos_info, cluster):
     return [qi.Name for qi in slurm_qos_info if qi.Name.startswith(cluster)]
 
 
-def slurm_project_qos(projects, slurm_qos_info, clusters):
+def slurm_project_qos(projects, slurm_qos_info, clusters, protected_qos):
     """Check for new/changed projects and set their QOS accordingly"""
     commands = []
     for cluster in clusters:
-        cluster_qos_names = set(get_cluster_qos(slurm_qos_info, cluster))
+        cluster_qos_names = set(get_cluster_qos(slurm_qos_info, cluster)) - set(protected_qos)
         project_qos_names = set([
             "{cluster}-{project_name}".format(cluster=cluster, project_name=p.name) for p in projects
         ])
@@ -582,10 +582,12 @@ def slurm_modify_qos():
     pass
 
 
-def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, protected_accounts):
+def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, protected_accounts, general_qos):
     """Check for new/changed projects and create their accounts accordingly
 
-    We assume that the QOS has already been created
+    We assume that the QOS has already been created.
+
+    The account gets access to each QOS in the general_qos list
     """
     commands = []
     for cluster in clusters:
@@ -600,7 +602,7 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, 
                     parent="projects",  # in case we want to deploy on Tier-2 as well
                     cluster=cluster,
                     organisation=GENT,   # tier-1 projects run here :p
-                    qos="{0}-{1}".format(cluster, project_name),  # QOS is not attached to a cluster
+                    qos="{0}-{1},{2}".format(cluster, project_name, ",".join(general_qos)),
                 ))
 
         for project_name in cluster_accounts - resource_app_project_names:
