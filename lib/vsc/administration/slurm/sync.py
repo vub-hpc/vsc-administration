@@ -549,11 +549,11 @@ def get_cluster_qos(slurm_qos_info, cluster):
     return [qi.Name for qi in slurm_qos_info if qi.Name.startswith(cluster)]
 
 
-def slurm_project_qos(projects, slurm_qos_info, clusters):
+def slurm_project_qos(projects, slurm_qos_info, clusters, protected_qos):
     """Check for new/changed projects and set their QOS accordingly"""
     commands = []
     for cluster in clusters:
-        cluster_qos_names = set(get_cluster_qos(slurm_qos_info, cluster))
+        cluster_qos_names = set(get_cluster_qos(slurm_qos_info, cluster)) - set(protected_qos)
         project_qos_names = set([
             "{cluster}-{project_name}".format(cluster=cluster, project_name=p.name) for p in projects
         ])
