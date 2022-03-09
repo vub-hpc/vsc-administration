@@ -114,9 +114,10 @@ class SlurmSyncTestGent(TestCase):
             SQI(Name="mycluster-gpr_compute_project3"),
             SQI(Name="mycluster-gpr_compute_project4"),
             SQI(Name="other-cluster-some-project"),
+            SQI(Name="protected_qos"),
         ]
 
-        commands = slurm_project_qos(projects, slurm_qos_info, ["mycluster"])
+        commands = slurm_project_qos(projects, slurm_qos_info, ["mycluster"], ["protected_qos"])
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add qos Name=mycluster-gpr_compute_project1"),
@@ -146,9 +147,9 @@ class SlurmSyncTestGent(TestCase):
         ]
 
         commands = slurm_project_users_accounts(
-            project_members, 
-            active_accounts, 
-            slurm_user_info, 
+            project_members,
+            active_accounts,
+            slurm_user_info,
             ["mycluster"],
             default_account="default_account",
             protected_accounts=("protected_account1", "protected_acocunt2")
