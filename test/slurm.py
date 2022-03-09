@@ -86,11 +86,11 @@ class SlurmSyncTestGent(TestCase):
             SAI(Account="some_project", Share=1, Cluster="mycluster"),
         ]
 
-        commands = slurm_project_accounts(resource_app_projects, slurm_account_info, ["mycluster"], ["some_project"])
+        commands = slurm_project_accounts(resource_app_projects, slurm_account_info, ["mycluster"], ["some_project"], ["qosforall"])
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
-            shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project3 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project3"),
-            shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project4 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project4"),
+            shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project3 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project3,qosforall"),
+            shlex.split("/usr/bin/sacctmgr -i add account gpr_compute_project4 Parent=projects Organization=ugent Cluster=mycluster Qos=mycluster-gpr_compute_project4,qosforall"),
             shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project5 --state=PENDING"),
             shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project5 --state=SUSPENDED"),
             shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project7 --state=PENDING"),
