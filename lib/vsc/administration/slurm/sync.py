@@ -606,7 +606,7 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, 
                     parent="projects",  # in case we want to deploy on Tier-2 as well
                     cluster=cluster,
                     organisation=GENT,   # tier-1 projects run here :p
-                    qos="{0}-{1},{2}".format(cluster, project_name, ",".join(general_qos)),
+                    qos=",".join(["{0}-{1}".format(cluster, project_name)] + general_qos),
                 ))
 
         for project_name in cluster_accounts - resource_app_project_names:
