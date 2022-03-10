@@ -550,7 +550,7 @@ def get_cluster_qos(slurm_qos_info, cluster):
     return [qi.Name for qi in slurm_qos_info if qi.Name.startswith(cluster)]
 
 
-def slurm_project_qos(projects, slurm_qos_info, clusters, protected_qos):
+def slurm_project_qos(projects, slurm_qos_info, clusters, protected_qos, qos_cleanup=False):
     """Check for new/changed projects and set their QOS accordingly"""
     commands = []
     for cluster in clusters:
@@ -572,8 +572,12 @@ def slurm_project_qos(projects, slurm_qos_info, clusters, protected_qos):
 
             # TODO: if we pass a cutoff date, we need to alter the hours if less was spent
 
-        for qos_name in cluster_qos_names - project_qos_names:
-            commands.append(create_remove_qos_command(qos_name))
+        # We should actually keep the QOS, so we keep the usage on the slurm system
+        # in case a project returns from the dead by receiving an extension past the
+        # former end date
+        if qos_cleanup:
+            for qos_name in cluster_qos_names - project_qos_names:
+                commands.append(create_remove_qos_command(qos_name))
 
     return commands
 
@@ -602,7 +606,7 @@ def slurm_project_accounts(resource_app_projects, slurm_account_info, clusters, 
                     parent="projects",  # in case we want to deploy on Tier-2 as well
                     cluster=cluster,
                     organisation=GENT,   # tier-1 projects run here :p
-                    qos="{0}-{1},{2}".format(cluster, project_name, ",".join(general_qos)),
+                    qos=",".join(["{0}-{1}".format(cluster, project_name)] + general_qos),
                 ))
 
         for project_name in cluster_accounts - resource_app_project_names:

@@ -117,7 +117,7 @@ class SlurmSyncTestGent(TestCase):
             SQI(Name="protected_qos"),
         ]
 
-        commands = slurm_project_qos(projects, slurm_qos_info, ["mycluster"], ["protected_qos"])
+        commands = slurm_project_qos(projects, slurm_qos_info, ["mycluster"], ["protected_qos"], qos_cleanup=True)
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add qos Name=mycluster-gpr_compute_project1"),
