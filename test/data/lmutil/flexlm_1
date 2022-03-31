@@ -1,0 +1,25 @@
+lmutil - Copyright (c) 1989-2019 Flexera. All Rights Reserved.
+Flexible License Manager status on Thu 4/15/2000 13:26
+
+License server status: 12345@1.2.3.4
+    License file(s) on 1.2.3.4: C:\Program Files\hooray\FLEXlm\11_18_0_0\bin\licenses.txt:
+
+1.2.3.4: license server UP v11.18.0
+
+Vendor daemon status (on HOST-CR-LM-ABC123):
+
+     cdlmd: UP v11.18.0
+Feature usage info:
+
+Users of mysoft:  (Total of 1 license issued;  Total of 1 license in use)
+
+  "mysoft" v2022.10, vendor: cdlmd, expiry: 31-oct-2022
+  floating license
+
+    vscusername some.node.domain /dev/tty (v2021.10) (HOST-CR-LM-ABC123/12345 256), start Wed 7/15 16:50
+
+Users of supersoft:  (Total of 1 license issued;  Total of 0 licenses in use)
+
+Users of whatever:  (Total of 1 license issued;  Total of 0 licenses in use)
+
+Users of is_new:  (Total of 1 license issued;  Total of 0 licenses in use)
