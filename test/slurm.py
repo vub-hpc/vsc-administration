@@ -23,11 +23,15 @@ from collections import namedtuple
 
 from vsc.install.testing import TestCase
 
+from vsc.administration.slurm.sacctmgr import (
+    parse_slurm_acct_dump,
+    SyncTypes, SlurmAccount, SlurmUser,
+    )
+
 from vsc.administration.slurm.sync import (
-    slurm_vo_accounts, slurm_user_accounts, parse_slurm_acct_dump,
+    slurm_vo_accounts, slurm_user_accounts,
     slurm_institute_accounts, slurm_project_accounts, slurm_project_users_accounts,
     slurm_project_qos,
-    SyncTypes, SlurmAccount, SlurmUser
 )
 
 
@@ -290,4 +294,3 @@ class SlurmSyncTestBrussel(TestCase):
             shlex.split("/usr/bin/sacctmgr -i add account bvo00005 Parent=brussel Organization=vub Cluster=mycluster Fairshare=14"),
             shlex.split("/usr/bin/sacctmgr -i add account bvo00006 Parent=brussel Organization=vub Cluster=mycluster Fairshare=13")
         ]])
-

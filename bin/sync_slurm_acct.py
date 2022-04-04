@@ -25,7 +25,7 @@ import sys
 
 from vsc.accountpage.client import AccountpageClient
 from vsc.accountpage.wrappers import mkVo
-from vsc.administration.slurm.sync import get_slurm_acct_info, SyncTypes, SacctMgrException
+from vsc.administration.slurm.sacctmgr import get_slurm_acct_info, SyncTypes, SacctMgrException
 from vsc.administration.slurm.sync import slurm_institute_accounts, slurm_vo_accounts, slurm_user_accounts
 from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, INSTITUTE_VOS_BY_INSTITUTE, PRODUCTION, PILOT
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
