@@ -25,8 +25,10 @@ import sys
 
 from vsc.accountpage.client import AccountpageClient
 from vsc.accountpage.wrappers import mkVo
-from vsc.administration.slurm.sacctmgr import get_slurm_acct_info, SyncTypes, SacctMgrException
-from vsc.administration.slurm.sync import slurm_institute_accounts, slurm_vo_accounts, slurm_user_accounts
+from vsc.administration.slurm.sacctmgr import get_slurm_acct_info, SyncTypes
+from vsc.administration.slurm.sync import (
+    execute_commands, slurm_institute_accounts, slurm_vo_accounts, slurm_user_accounts,
+    )
 from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, INSTITUTE_VOS_BY_INSTITUTE, PRODUCTION, PILOT
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
 from vsc.utils.run import RunNoShell
@@ -43,18 +45,6 @@ MAX_USERS_JOB_CANCEL = 10
 
 class SyncSanityError(Exception):
     pass
-
-
-def execute_commands(commands):
-    """Run the specified commands"""
-
-    for command in commands:
-        logging.info("Running command: %s", command)
-
-        # if one fails, we simply fail the script and should get notified
-        (ec, _) = RunNoShell.run(command)
-        if ec != 0:
-            raise SacctMgrException("Command failed: {0}".format(command))
 
 
 def main():

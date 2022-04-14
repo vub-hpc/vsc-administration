@@ -20,6 +20,7 @@ import logging
 from collections import defaultdict
 
 from vsc.config.base import GENT, INSTITUTE_VOS_BY_INSTITUTE, INSTITUTE_FAIRSHARE
+from vsc.utils.run import RunNoShell
 from vsc.administration.slurm.sacctmgr import (
     create_add_account_command, create_remove_account_command,
     create_change_account_fairshare_command,
@@ -33,6 +34,22 @@ from vsc.administration.slurm.scancel import (
 
 class SlurmSyncException(Exception):
     pass
+
+
+class SCommandException(Exception):
+    pass
+
+
+def execute_commands(commands):
+    """Run the specified commands"""
+
+    for command in commands:
+        logging.info("Running command: %s", command)
+
+        # if one fails, we simply fail the script and should get notified
+        (ec, _) = RunNoShell.run(command)
+        if ec != 0:
+            raise SCommandException("Command failed: {0}".format(command))
 
 
 TIER1_GPU_TO_CPU_HOURS_RATE = 12 # 12 cpus per gpu

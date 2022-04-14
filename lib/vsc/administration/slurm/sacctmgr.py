@@ -53,12 +53,14 @@ SacctUserFields = [
     "MaxJobs", "MaxNodes", "MaxCPUs", "MaxSubmit", "MaxWall", "MaxCPUMins",
     "QOS", "Def_QOS"
 ]
+
 SacctAccountFields = [
     "Account", "Descr", "Org", "Cluster", "Par_Name", "User", "Share",
     "GrpJobs", "GrpNodes", "GrpCPUs", "GrpMem", "GrpSubmit", "GrpWall", "GrpCPUMins",
     "MaxJobs", "MaxNodes", "MaxCPUs", "MaxSubmit", "MaxWall", "MaxCPUMins",
     "QOS", "Def_QOS"
 ]
+
 SacctQosFields = [
     "Name", "Priority", "GraceTime", "Preempt", "PreemptExemptTime", "PreemptMode",
     "Flags", "UsageThres", "UsageFactor", "GrpTRES", "GrpTRESMins", "GrpTRESRunMins",
@@ -66,6 +68,7 @@ SacctQosFields = [
     "MaxWall", "MaxTRESPU", "MaxJobsPU", "MaxSubmitPU", "MaxTRESPA", "MaxJobsPA",
     "MaxSubmitPA", "MinTRES"
 ]
+
 
 IGNORE_USERS = ["root"]
 IGNORE_ACCOUNTS = ["root"]
