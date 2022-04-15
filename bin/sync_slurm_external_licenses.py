@@ -25,6 +25,7 @@ The script must result in an idempotent execution, to ensure nothing breaks.
 
 from __future__ import print_function
 
+import json
 import logging
 import os
 import re
@@ -32,6 +33,7 @@ import sys
 import tempfile
 
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
+from vsc.utils.run import RunNoShell
 from vsc.utils.script_tools import ExtendedSimpleOption
 from vsc.administration.slurm.sync import execute_commands
 
@@ -69,7 +71,7 @@ def retrieve_license_data(license_type, tool, server, port):
     Return dict with key the toolname and value another dict with total and in_use as keys
     """
 
-    res = None
+    res = {}
 
     if license_type == FLEXLM:
         # make tempfile file 'SERVER hostname AABBCCDDEEFF port' (yes, with fake MAC)
@@ -77,49 +79,80 @@ def retrieve_license_data(license_type, tool, server, port):
         try:
             with os.fdopen(fd, 'w') as fh:
                 fh.write('SERVER %s AABBCCDDEEFF %s\n' % (server, port))
-            #lmutil lmstat -a -c tmpfile
+            # lmutil lmstat -a -c tmpfile
             (ec, output) = RunNoShell.run([tool, 'lmstat', '-a', '-c', fn])
-            # parse output
-            parsed = _parse_lmutil(output)
-            #  For every toolname, add total and in_use
         finally:
             os.unlink(fn)
+
+        # parse output
+        parsed = _parse_lmutil(output)
+
+        #  For every toolname, add total and in_use
+        for data in parsed:
+            name = data.pop('name')
+            res[name] = data
     else:
+        res = None
         logging.error("Unsupported license_type %s for server %s", license_type, server)
+
+    logging.debug("license_type %s for server %s port %s returned %s", license_type, server, port, res)
 
     return res
 
 
-def licenses_data(config_filename):
+def licenses_data(config_filename, default_tool):
     """
     Read license JSON file, add some default values, retrieve license server data and add it
     Return dict: key = full pseudonymous name combo (name + sofwtare_name), value another dict with count, in_use
     """
 
-    data = {}
-
+    res = {}
     # parse config file in JSON
     #    need following data
-    #      name: key of dict, prefix for software name
+    #      key of dict, prefix for software name (eg pseudonymous name for company X)
     #        server
     #        port
-    #        license_type (default flexlm?)
-    #        tool = path to eg lmutil if not default
-    #        software: list of dicts
+    #        license_type: default flexlm
+    #        tool = path to eg lmutil: default from options
+    #        software: key of dict is name reported by tool
     #          name: pseudonymous name, to be used by users in jobs
-    #          toolname: name reported by tool
     #          count: number of licenses avail
+    with open(config_filename) as fh:
+        all_extern_data = json.load(fh)
 
-    # for each name, retrieve data from server and augment software count with total and in_use data
-    #    compare with total count (and report some error/warning if this goes out of sync)
-    #       if server is unreachable, set number in_use equal to count: i.e. all is in use
+    all_externs = sorted(all_extern_data.keys())  # sorted for reproducible tests
+    for extern in all_externs:
+        edata = all_extern_data[extern]
 
+        if 'license_type' not in edata:
+            edata['license_type'] = FLEXLM
+        if 'tool' not in edata:
+            edata['tool'] = default_tool
+        # for each name, retrieve data from server and augment software count with total and in_use data
+        #    compare with total count (and report some error/warning if this goes out of sync)
+        #       if server is unreachable, set number in_use equal to count: i.e. all is in use
+        lics = retrieve_license_data(edata['license_type'], edata['tool'], edata['server'], edata['port'])
 
-    # licnese in_use reported by server should be corrected by license known by slurm to be allocated to jobs
-    #    problem is: license known by slurm in use doesn't mean in_use by server
-    #         eg job is started, be application not yet started, or not using as much
+        eknown = set(lics.keys())
 
-    return data
+        software = edata['software']
+        econfig = set(software.keys())
+
+        missing = econfig - eknown
+        if missing:
+            logging.error("Configured licenses for extern %s for software %s are not reported back", extern, missing)
+
+        for soft in missing:
+            # Add it to results, so we can keep any existing resource/reservation
+            software[soft]['skip'] = True
+        for soft in econfig - missing:
+            software[soft].update(lics[soft])
+
+        for soft, sdata in software.items():
+            name = sdata.pop('name')
+            res["%s_%s" % (extern, name)] = sdata
+
+    return res
 
 
 def update_licenses(licenses, ignore_resources):
@@ -136,6 +169,8 @@ def update_licenses(licenses, ignore_resources):
     #  don't use server for server, but pseudonymous name+software name as well
     #sacctmgr add resource name=comsol count=2 server= servertype=flexlm type=license
 
+    # compare total vs coount, report discrepancy? or autoupdate?
+
     # Cleanup licenses
 
     return new_update, remove
@@ -148,6 +183,10 @@ def update_license_reservations(licenses, cluster, partition, ignore_reservation
     # Get all existing license reservations
     #    only license reservations
     #       remove the ignore_reservations also
+
+    # license in_use reported by server should be corrected by license known by slurm to be allocated to jobs
+    #    problem is: license known by slurm in use doesn't mean in_use by server
+    #         eg job is started, be application not yet started, or not using as much
 
     new_update = []
     remove = []
@@ -176,6 +215,7 @@ def main():
 
     options = {
         "licenses": ('JSON file with required license information', None, 'store', "/etc/%s.json" % NAGIOS_HEADER),
+        "tool": ('Default license tool path', None, 'store', None),
         "ignore-resources": ('List of license resources to ignore', "strlist", 'store', []),
         "ignore-reservations": ('List of license reservations to ignore', "strlist", 'store', []),
         "cluster": ("Cluster that will hold the reservation", None, 'store', None),
@@ -191,7 +231,7 @@ def main():
         if not opts.options.partition:
             raise Exception("Missing partition option")
 
-        licenses = licenses_data(opts.options.licenses)
+        licenses = licenses_data(opts.options.licenses, opts.options.tool)
 
         sacct_new_update, sacct_remove = update_licenses(licenses, opts.options.ignore_resources)
 
