@@ -30,6 +30,7 @@ from vsc.install.testing import TestCase
 
 from sync_slurm_external_licenses import (
     _parse_lmutil, retrieve_license_data, licenses_data,
+    update_licenses,
     )
 
 class TestSyncSlurmExtLicenses(TestCase):
@@ -123,8 +124,51 @@ class TestSyncSlurmExtLicenses(TestCase):
         self.assertEqual(kwargs, {})
 
         self.assertEqual(res, {
-            'ano-comp1_ano-1': {'count': 100, 'skip': True},
-            'ano-comp1_ano-2': {'count': 5, 'in_use': 3, 'total': 6},
-            'ano-comp2_an-4': {'count': 200, 'in_use': 5, 'total': 7},
-            'ano-comp2_an-5': {'count': 7, 'skip': True},
+            'ano-1@ano-comp1': {'count': 100, 'skip': True, 'extern': 'ano-comp1',
+                                'name': 'ano-1', 'type': 'strange'},
+            'ano-2@ano-comp1': {'count': 5, 'in_use': 3, 'total': 6, 'extern': 'ano-comp1',
+                                'name': 'ano-2', 'type': 'strange'},
+            'an-4@ano-comp2': {'count': 200, 'in_use': 5, 'total': 7, 'extern': 'ano-comp2',
+                               'name': 'an-4', 'type': 'flexlm'},
+            'an-5@ano-comp2': {'count': 7, 'skip': True, 'extern': 'ano-comp2',
+                               'name': 'an-5', 'type': 'flexlm'},
         })
+
+    @patch('vsc.administration.slurm.sacctmgr.asyncloop')
+    def test_update_licenses(self, masync):
+        """Test sacctmgr resource commands: add new, update, skip, dont_update_identical, remove"""
+
+        masync.return_value = (0, """Name|Server|Type|Count|% Allocated|ServerType
+comsol|bogus|License|2|0|flexlm
+hubba|myserver|NotALicense|10000|52|psssss
+an-4|ano-comp2|License|200|3|flexlm
+an-5|ano-comp2|License|20|10|flexlm
+""")
+
+        licenses = {
+            'ano-1@ano-comp1': {'count': 100, 'skip': True, 'extern': 'ano-comp1',
+                                'name': 'ano-1', 'type': 'strange'},
+            'an-4@ano-comp2': {'count': 200, 'in_use': 5, 'total': 7, 'extern': 'ano-comp2',
+                               'name': 'an-4', 'type': 'flexlm'},
+            'an-5@ano-comp2': {'count': 7, 'skip': True, 'extern': 'ano-comp2',
+                               'name': 'an-5', 'type': 'flexlm'},
+        }
+        nw_up, rem = update_licenses(licenses, ["clust1", "clust2"], [], False)
+
+        logging.debug("run calls: %s", masync.mock_calls)
+
+        self.assertEqual(len(masync.mock_calls), 1)
+        name, args, kwargs = masync.mock_calls[0]
+        logging.debug("%s %s %s", name, args, kwargs)
+        self.assertEqual(name, '')
+        self.assertEqual(args, (['/usr/bin/sacctmgr', '-s', '-P', 'list', 'resource'],))
+        self.assertEqual(kwargs, {})
+
+        logging.debug("new_update %s remove %s", nw_up, rem)
+        self.assertEqual(nw_up, [
+            ['/usr/bin/sacctmgr', '-i', 'add', 'resource', 'Type=license', 'Name=ano-1', 'Server=ano-comp1', 'ServerType=strange', 'Cluster=clust1,clust2', 'Count=100', 'PercentAllowed=100'],
+            ['/usr/bin/sacctmgr', '-i', 'modify', 'resource', 'whereType=license', 'Name=an-5', 'Server=ano-comp2', 'ServerType=flexlm', 'set', 'Cluster=clust1,clust2', 'Count=7', 'PercentAllowed=100'],
+        ])
+        self.assertEqual(rem, [
+            ['/usr/bin/sacctmgr', '-i', 'remove', 'resource', 'where', 'Type=license', 'Name=comsol', 'Server=bogus', 'ServerType=flexlm'],
+        ])

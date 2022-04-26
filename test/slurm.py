@@ -24,7 +24,7 @@ from collections import namedtuple
 from vsc.install.testing import TestCase
 
 from vsc.administration.slurm.sacctmgr import (
-    parse_slurm_acct_dump,
+    parse_slurm_sacct_dump,
     SyncTypes, SlurmAccount, SlurmUser,
     )
 
@@ -99,8 +99,8 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project5 --state=SUSPENDED"),
             shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project7 --state=PENDING"),
             shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project7 --state=SUSPENDED"),
-            shlex.split("/usr/bin/sacctmgr -i delete account Name=gpr_compute_project5 Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i delete account Name=gpr_compute_project7 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i remove account Name=gpr_compute_project5 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i remove account Name=gpr_compute_project7 Cluster=mycluster"),
         ]]))
 
     def test_slurm_project_qos(self):
@@ -166,8 +166,8 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/sacctmgr -i add user user4 Account=gpr_compute_project2 Cluster=mycluster"),
             shlex.split("/usr/bin/sacctmgr -i add user user6 Account=gpr_compute_project2 Cluster=mycluster"),
             shlex.split("/usr/bin/sacctmgr -i add user user3 Account=gpr_compute_project1 Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i delete user Name=user3 Account=gpr_compute_project2 Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i delete user Name=user4 Account=gpr_compute_project1 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user3 Account=gpr_compute_project2 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user4 Account=gpr_compute_project1 Cluster=mycluster"),
         ]]))
 
 
@@ -220,9 +220,9 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/sacctmgr -i modify user Name=user4 Cluster=banette set DefaultAccount=vo2"),
         ]]))
         self.assertEqual(set([tuple(x) for x in remove_user_commands]), set([tuple(x) for x in [
-            shlex.split("/usr/bin/sacctmgr -i delete user name=user2 Cluster=banette"),
-            shlex.split("/usr/bin/sacctmgr -i delete user name=user3 Account=vo2 Cluster=banette"),
-            shlex.split("/usr/bin/sacctmgr -i delete user name=user4 Account=vo1 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user2 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user3 Account=vo2 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user4 Account=vo1 Cluster=banette"),
         ]]))
 
         self.assertEqual(set([tuple(x) for c in job_cancel_commands.values() for x in c]), set([tuple(x) for x in [
@@ -231,7 +231,7 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/scancel --cluster=banette --user=user4 --account=vo1"),
         ]]))
 
-    def test_parse_slurmm_acct_dump(self):
+    def test_parse_slurmm_sacct_dump(self):
         """Test that the sacctmgr output is correctly processed."""
 
         sacctmgr_account_output = [
@@ -244,7 +244,7 @@ class SlurmSyncTestGent(TestCase):
             "vo2|vo2|gvo00002|banette||someuser|1||||||||||||||normal|",
         ]
 
-        info = parse_slurm_acct_dump(sacctmgr_account_output, SyncTypes.accounts)
+        info = parse_slurm_sacct_dump(sacctmgr_account_output, SyncTypes.accounts)
 
         self.assertEqual(set(info), set([
             SlurmAccount(Account='brussel', Descr='brussel', Org='vub', Cluster='banette', Par_Name='root', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
@@ -264,7 +264,7 @@ class SlurmSyncTestGent(TestCase):
             "account3|vo2|None|banette|vo2||1|||||||normal|",
         ]
 
-        info = parse_slurm_acct_dump(sacctmgr_user_output, SyncTypes.users)
+        info = parse_slurm_sacct_dump(sacctmgr_user_output, SyncTypes.users)
 
         self.assertEqual(set(info), set([
             SlurmUser(User='account1', Def_Acct='vo1', Admin='None', Cluster='banette', Account='vo1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),

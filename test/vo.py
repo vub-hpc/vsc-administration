@@ -19,6 +19,7 @@ Tests for vsc.administration.vo
 @author: Ward Poelmans (Vrije Universiteit Brussel)
 """
 import os
+import pwd
 
 from collections import namedtuple
 
@@ -823,7 +824,8 @@ class VoDeploymentTest(TestCase):
         mock_gpfs.return_value.list_filesets.assert_called_with()
         mock_gpfs.return_value.get_fileset_info.assert_called_with("theiascratch", "bvo00003")
         mock_gpfs.return_value.chmod.assert_called_with(504, "/theia/scratch/brussel/vo/000/bvo00003")
-        mock_gpfs.return_value.chown.assert_called_with(99, 2610008, "/theia/scratch/brussel/vo/000/bvo00003")
+        nobody_id = pwd.getpwnam('nobody').pw_uid
+        mock_gpfs.return_value.chown.assert_called_with(nobody_id, 2610008, "/theia/scratch/brussel/vo/000/bvo00003")
         mock_gpfs.return_value.set_fileset_quota.assert_called_with(
             102005473280, "/theia/scratch/brussel/vo/000/bvo00003", "bvo00003", 107374182400
         )

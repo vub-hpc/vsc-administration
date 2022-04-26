@@ -43,6 +43,7 @@ class SyncTypes(Enum):
     accounts = "accounts"
     users = "users"
     qos = "qos"
+    resource = "resource"
 
 
 # Fields for Slurm 20.11.
@@ -69,6 +70,9 @@ SacctQosFields = [
     "MaxSubmitPA", "MinTRES"
 ]
 
+SacctResourceFields = [
+    "Name", "Server", "Type", "Count", "PCT__Allocated", "ServerType",
+]
 
 IGNORE_USERS = ["root"]
 IGNORE_ACCOUNTS = ["root"]
@@ -77,6 +81,7 @@ IGNORE_QOS = ["normal"]
 SlurmAccount = namedtuple_with_defaults('SlurmAccount', SacctAccountFields)
 SlurmUser = namedtuple_with_defaults('SlurmUser', SacctUserFields)
 SlurmQos = namedtuple_with_defaults('SlurmQos', SacctQosFields)
+SlurmResource = namedtuple_with_defaults('SlurmResource', SacctResourceFields)
 
 
 def mkSlurmAccount(fields):
@@ -101,12 +106,29 @@ def mkSlurmQos(fields):
     return qos
 
 
-def parse_slurm_acct_line(header, line, info_type, user_field_number, account_field_number, exclude_accounts=None):
+def mkSlurmResource(fields):
+    """Make a named tuple from the given fields"""
+    fields['Count'] = int(fields['Count'])
+    resource = mkNamedTupleInstance(fields, SlurmResource)
+    return resource
+
+
+def mksacctmgr(mode):
+    """Decorator to prefix common sacctmgr code for mode"""
+    def decorator(function):
+        def wrapper(*args, **kwargs):
+            prefix = [SLURM_SACCT_MGR, "-i", mode]
+            return prefix + function(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def parse_slurm_sacct_line(header, line, info_type, user_field_number, account_field_number, exclude=None):
     """Parse the line into the correct data type."""
     fields = line.split("|")
 
     if info_type == SyncTypes.accounts:
-        if exclude_accounts and fields[account_field_number] in exclude_accounts:
+        if exclude and fields[account_field_number] in exclude:
             return None
         if fields[user_field_number]:
             # association information for a user. Users are processed later.
@@ -116,45 +138,48 @@ def parse_slurm_acct_line(header, line, info_type, user_field_number, account_fi
         creator = mkSlurmUser
     elif info_type == SyncTypes.qos:
         creator = mkSlurmQos
+    elif info_type == SyncTypes.resource:
+        creator = mkSlurmResource
     else:
         return None
 
     return creator(dict(zip(header, fields)))
 
 
-def parse_slurm_acct_dump(lines, info_type, exclude_accounts=None):
-    """Parse the accounts from the listing."""
+def parse_slurm_sacct_dump(lines, info_type, exclude=None):
+    """Parse the sacctmgr dump from the listing."""
     acct_info = set()
 
-    header = [w.replace(' ', '_') for w in lines[0].rstrip().split("|")]
-    try:
-        user_field_number = [h.lower() for h in header].index("user")
-    except ValueError:
+    header = [w.replace(' ', '_').replace('%', 'PCT_') for w in lines[0].rstrip().split("|")]
+    header_names = [h.lower() for h in header]
+
+    if info_type == SyncTypes.accounts:
+        user_field_number = header_names.index("user")
+        account_field_number = header_names.index("account")
+    else:
         user_field_number = None
-    try:
-        account_field_number = [h.lower() for h in header].index("account")
-    except ValueError:
         account_field_number = None
 
     for line in lines[1:]:
+        logging.debug("line %s", line)
         line = line.rstrip()
         try:
-            info = parse_slurm_acct_line(
-                header, line, info_type, user_field_number, account_field_number, exclude_accounts
+            info = parse_slurm_sacct_line(
+                header, line, info_type, user_field_number, account_field_number, exclude=exclude
             )
-            # This fails when we get e.g., the users and look at the account lines.
-            # We should them just skip that line instead of raising an exception
-            if info:
-                acct_info.add(info)
         except Exception as err:
-            logging.exception("Slurm acct sync: could not process line %s [%s]", line, err)
+            logging.exception("Slurm sacct parse dump: could not process line %s [%s]", line, err)
             raise
+        # This fails when we get e.g., the users and look at the account lines.
+        # We should them just skip that line instead of raising an exception
+        if info:
+            acct_info.add(info)
 
     return acct_info
 
 
-def get_slurm_acct_info(info_type, exclude_accounts=None):
-    """Get slurm account info for the given clusterself.
+def get_slurm_sacct_info(info_type, exclude=None):
+    """Get slurm info for the given clusterself.
 
     @param info_type: SyncTypes
     """
@@ -168,11 +193,11 @@ def get_slurm_acct_info(info_type, exclude_accounts=None):
     if exitcode != 0:
         raise SacctMgrException("Cannot run sacctmgr")
 
-    info = parse_slurm_acct_dump(contents.splitlines(), info_type, exclude_accounts)
+    info = parse_slurm_sacct_dump(contents.splitlines(), info_type, exclude=exclude)
 
     return info
 
-
+@mksacctmgr('add')
 def create_add_account_command(account, parent, organisation, cluster, fairshare=None, qos=None):
     """
     Creates the command to add the given account.
@@ -184,10 +209,7 @@ def create_add_account_command(account, parent, organisation, cluster, fairshare
 
     @returns: list comprising the command
     """
-    create_account_command = [
-        SLURM_SACCT_MGR,
-        "-i",   # commit immediately
-        "add",
+    command = [
         "account",
         account,
         "Parent={0}".format(parent or "root"),
@@ -196,9 +218,9 @@ def create_add_account_command(account, parent, organisation, cluster, fairshare
     ]
 
     if fairshare is not None:
-        create_account_command.append("Fairshare={0}".format(fairshare))
+        command.append("Fairshare={0}".format(fairshare))
     if qos is not None:
-        create_account_command.append("Qos={0}".format(qos))
+        command.append("Qos={0}".format(qos))
 
     logging.debug(
         "Adding command to add account %s with Parent=%s Cluster=%s Organization=%s",
@@ -208,9 +230,10 @@ def create_add_account_command(account, parent, organisation, cluster, fairshare
         organisation,
         )
 
-    return create_account_command
+    return command
 
 
+@mksacctmgr('modify')
 def create_default_account_command(user, account, cluster):
     """Creates the command the set a default account for a user.
 
@@ -218,10 +241,7 @@ def create_default_account_command(user, account, cluster):
     @param accont: the account name in Slurm
     @param cluster: cluster for which the user sets a default account
     """
-    create_default_account_command = [
-        SLURM_SACCT_MGR,
-        "-i",
-        "modify",
+    command = [
         "user",
         "Name={0}".format(user),
         "Cluster={0}".format(cluster),
@@ -234,14 +254,12 @@ def create_default_account_command(user, account, cluster):
         user,
         cluster)
 
-    return create_default_account_command
+    return command
 
 
+@mksacctmgr('modify')
 def create_change_account_fairshare_command(account, cluster, fairshare):
-    change_account_fairshare_command = [
-        SLURM_SACCT_MGR,
-        "-i",
-        "modify",
+    command = [
         "account",
         "name={0}".format(account),
         "cluster={0}".format(cluster),
@@ -255,9 +273,10 @@ def create_change_account_fairshare_command(account, cluster, fairshare):
         fairshare,
     )
 
-    return change_account_fairshare_command
+    return command
 
 
+@mksacctmgr('add')
 def create_add_user_command(user, account, cluster, default_account=None):
     """
     Creates the command to add the given account.
@@ -269,17 +288,14 @@ def create_add_user_command(user, account, cluster, default_account=None):
 
     @returns: list comprising the command
     """
-    create_user_command = [
-        SLURM_SACCT_MGR,
-        "-i",   # commit immediately
-        "add",
+    command = [
         "user",
         user,
         "Account={0}".format(account),
         "Cluster={0}".format(cluster)
     ]
     if default_account is not None:
-        create_user_command.append(
+        command.append(
             "DefaultAccount={0}".format(account),
         )
     logging.debug(
@@ -289,7 +305,7 @@ def create_add_user_command(user, account, cluster, default_account=None):
         cluster,
         )
 
-    return create_user_command
+    return command
 
 
 def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
@@ -304,15 +320,8 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
         cluster=cluster,
         account=current_vo_id,
     )
-    remove_association_user_command = [
-        SLURM_SACCT_MGR,
-        "-i",   # commit immediately
-        "delete",
-        "user",
-        "name={0}".format(user),
-        "Account={0}".format(current_vo_id),
-        "Cluster={0}".format(cluster),
-    ]
+    remove_association_user_command = create_remove_user_account_command(user, current_vo_id, cluster)
+
     logging.debug(
         "Adding commands to change user %s on Cluster=%s from Account=%s to DefaultAccount=%s",
         user,
@@ -329,17 +338,15 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
     ]
 
 
+@mksacctmgr('remove')
 def create_remove_user_command(user, cluster):
     """Create the command to remove a user.
 
     @returns: list comprising the command
     """
-    remove_user_command = [
-        SLURM_SACCT_MGR,
-        "-i",   # commit immediately
-        "delete",
+    command = [
         "user",
-        "name={user}".format(user=user),
+        "Name={user}".format(user=user),
         "Cluster={cluster}".format(cluster=cluster)
     ]
     logging.debug(
@@ -348,17 +355,16 @@ def create_remove_user_command(user, cluster):
         cluster,
         )
 
-    return remove_user_command
+    return command
 
+
+@mksacctmgr('remove')
 def create_remove_account_command(account, cluster):
     """Create the command to remove an account.
 
     @returns: list comprising the command
     """
-    remove_account_command = [
-        SLURM_SACCT_MGR,
-        "-i",
-        "delete",
+    command = [
         "account",
         "Name={account}".format(account=account),
         "Cluster={cluster}".format(cluster=cluster),
@@ -370,23 +376,22 @@ def create_remove_account_command(account, cluster):
         cluster,
     )
 
-    return remove_account_command
+    return command
 
 
+@mksacctmgr('remove')
 def create_remove_user_account_command(user, account, cluster):
     """Create the command to remove a user.
 
     @returns: list comprising the command
     """
-    remove_user_command = [
-        SLURM_SACCT_MGR,
-        "-i",   # commit immediately
-        "delete",
+    command = [
         "user",
         "Name={user}".format(user=user),
         "Account={account}".format(account=account),
         "Cluster={cluster}".format(cluster=cluster)
     ]
+
     logging.debug(
         "Adding command to remove user %s with account %s from Cluster=%s",
         user,
@@ -394,24 +399,24 @@ def create_remove_user_account_command(user, account, cluster):
         cluster,
         )
 
-    return remove_user_command
+    return command
 
 
+@mksacctmgr('add')
 def create_add_qos_command(name):
     """Create the command to add a QOS
 
     @returns: the list comprising the command
     """
-    add_qos_command = [
-        SLURM_SACCT_MGR,
-        "-i",
-        "add",
+    command = [
         "qos",
         "Name={0}".format(name)
     ]
 
-    return add_qos_command
+    return command
 
+
+@mksacctmgr('remove')
 def create_remove_qos_command(name):
     """Create the command to remove a QOS.
 
@@ -419,18 +424,16 @@ def create_remove_qos_command(name):
 
     @returns: the list comprising the command
     """
-    remove_qos_command = [
-        SLURM_SACCT_MGR,
-        "-i",
-        "remove",
+    command = [
         "qos",
         "where",
         "Name={0}".format(name),
     ]
 
-    return remove_qos_command
+    return command
 
 
+@mksacctmgr('modify')
 def create_modify_qos_command(name, settings):
     """Create the command to modify a QOS
 
@@ -439,10 +442,7 @@ def create_modify_qos_command(name, settings):
 
     @returns: the list comprising the command
     """
-    modify_qos_command = [
-        SLURM_SACCT_MGR,
-        "-i",
-        "modify",
+    command = [
         "qos",
         name,
         "set",
@@ -450,7 +450,66 @@ def create_modify_qos_command(name, settings):
     ]
 
     for k, v in settings.items():
-        modify_qos_command.append("{0}={1}".format(k, v))
+        command.append("{0}={1}".format(k, v))
 
-    return modify_qos_command
+    return command
 
+
+@mksacctmgr('add')
+def create_add_resource_license_command(name, server, stype, clusters, count):
+    """Create the command to add a license resource
+
+    @returns: the list comprising the command
+    """
+    command = [
+        "resource",
+        "Type=license",
+        "Name={0}".format(name),
+        "Server={0}".format(server),
+        "ServerType={0}".format(stype),
+        "Cluster={0}".format(",".join(clusters)),
+        "Count={0}".format(count),
+        "PercentAllowed=100",
+    ]
+
+    return command
+
+
+@mksacctmgr('remove')
+def create_remove_resource_license_command(name, server, stype):
+    """Create the command to remove a license resource.
+
+    @returns: the list comprising the command
+    """
+    command = [
+        "resource",
+        "where",
+        "Type=license",
+        "Name={0}".format(name),
+        "Server={0}".format(server),
+        "ServerType={0}".format(stype),
+    ]
+
+    return command
+
+
+@mksacctmgr('modify')
+def create_modify_resource_license_command(name, server, stype, clusters, count):
+    """Create the command to add a license resource
+
+    @returns: the list comprising the command
+    """
+    command = [
+        "resource",
+        "where"
+        "Type=license",
+        "Name={0}".format(name),
+        "Server={0}".format(server),
+        "ServerType={0}".format(stype),
+        "set",
+        "Cluster={0}".format(",".join(clusters)),
+        "Count={0}".format(count),
+        "PercentAllowed=100",
+    ]
+
+    return command
