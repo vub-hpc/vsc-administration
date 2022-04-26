@@ -25,7 +25,7 @@ import sys
 
 from vsc.accountpage.client import AccountpageClient
 from vsc.accountpage.wrappers import mkVo
-from vsc.administration.slurm.sacctmgr import get_slurm_sacct_info, SyncTypes
+from vsc.administration.slurm.sacctmgr import get_slurm_sacct_info, SacctMgrTypes
 from vsc.administration.slurm.sync import (
     execute_commands, slurm_institute_accounts, slurm_vo_accounts, slurm_user_accounts,
     )
@@ -96,8 +96,8 @@ def main():
         client = AccountpageClient(token=opts.options.access_token, url=opts.options.account_page_url + "/api/")
         host_institute = opts.options.host_institute
 
-        slurm_account_info = get_slurm_sacct_info(SyncTypes.accounts)
-        slurm_user_info = get_slurm_sacct_info(SyncTypes.users)
+        slurm_account_info = get_slurm_sacct_info(SacctMgrTypes.accounts)
+        slurm_user_info = get_slurm_sacct_info(SacctMgrTypes.users)
 
         logging.debug("%d accounts found", len(slurm_account_info))
         logging.debug("%d users found", len(slurm_user_info))

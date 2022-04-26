@@ -38,7 +38,7 @@ from vsc.utils.run import RunNoShell
 from vsc.utils.script_tools import ExtendedSimpleOption
 from vsc.administration.slurm.sync import execute_commands
 from vsc.administration.slurm.sacctmgr import (
-    get_slurm_sacct_info, SyncTypes,
+    get_slurm_sacct_info, SacctMgrTypes,
     create_add_resource_license_command,
     create_remove_resource_license_command,
     create_modify_resource_license_command,
@@ -176,7 +176,7 @@ def update_licenses(licenses, clusters, ignore_resources, force_update):
     #   only license resrouces
     #   remove the ignore_resources also
 
-    info = get_slurm_sacct_info(SyncTypes.resource)
+    info = get_slurm_sacct_info(SacctMgrTypes.resource)
     logging.debug("%d unfiltered resources found: %s", len(info), info)
 
     info = [resc for resc in info if resc and resc.Type == 'License' and resc.Name not in ignore_resources]
