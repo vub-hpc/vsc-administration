@@ -39,7 +39,7 @@ class SacctMgrException(Exception):
     pass
 
 
-class SyncTypes(Enum):
+class SacctMgrTypes(Enum):
     accounts = "accounts"
     users = "users"
     qos = "qos"
@@ -127,18 +127,18 @@ def parse_slurm_sacct_line(header, line, info_type, user_field_number, account_f
     """Parse the line into the correct data type."""
     fields = line.split("|")
 
-    if info_type == SyncTypes.accounts:
+    if info_type == SacctMgrTypes.accounts:
         if exclude and fields[account_field_number] in exclude:
             return None
         if fields[user_field_number]:
             # association information for a user. Users are processed later.
             return None
         creator = mkSlurmAccount
-    elif info_type == SyncTypes.users:
+    elif info_type == SacctMgrTypes.users:
         creator = mkSlurmUser
-    elif info_type == SyncTypes.qos:
+    elif info_type == SacctMgrTypes.qos:
         creator = mkSlurmQos
-    elif info_type == SyncTypes.resource:
+    elif info_type == SacctMgrTypes.resource:
         creator = mkSlurmResource
     else:
         return None
@@ -153,7 +153,7 @@ def parse_slurm_sacct_dump(lines, info_type, exclude=None):
     header = [w.replace(' ', '_').replace('%', 'PCT_') for w in lines[0].rstrip().split("|")]
     header_names = [h.lower() for h in header]
 
-    if info_type == SyncTypes.accounts:
+    if info_type == SacctMgrTypes.accounts:
         user_field_number = header_names.index("user")
         account_field_number = header_names.index("account")
     else:
@@ -181,7 +181,7 @@ def parse_slurm_sacct_dump(lines, info_type, exclude=None):
 def get_slurm_sacct_info(info_type, exclude=None):
     """Get slurm info for the given clusterself.
 
-    @param info_type: SyncTypes
+    @param info_type: SacctMgrTypes
     """
     (exitcode, contents) = asyncloop([
         SLURM_SACCT_MGR,
@@ -196,6 +196,7 @@ def get_slurm_sacct_info(info_type, exclude=None):
     info = parse_slurm_sacct_dump(contents.splitlines(), info_type, exclude=exclude)
 
     return info
+
 
 @mksacctmgr('add')
 def create_add_account_command(account, parent, organisation, cluster, fairshare=None, qos=None):
