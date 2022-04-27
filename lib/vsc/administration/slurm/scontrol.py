@@ -16,6 +16,7 @@
 scontrol commands
 """
 import logging
+import re
 import shlex
 
 from enum import Enum
@@ -27,24 +28,43 @@ from vsc.utils.run import asyncloop
 
 SLURM_SCONTROL = "/usr/bin/scontrol"
 
+SLURM_SCONTROL_CONFIG_REGEX = re.compile("^(.*\S)\s+=\s+(\S.*)$")
+
 
 class ScontrolTypes(Enum):
     reservation = "reservation"
     license = "license"
+    config = "config"
+    partition = "partition"
 
 
 ScontrolReservationFields = [
     'ReservationName', 'StartTime', 'EndTime', 'Duration', 'Nodes', 'NodeCnt', 'CoreCnt',
     'Features', 'PartitionName', 'Flags', 'TRES', 'Users', 'Groups', 'Accounts', 'Licenses',
     'State', 'BurstBuffer', 'Watts', 'MaxStartDelay',
-    ]
+]
 
 ScontrolLicenseFields = [
     'LicenseName', 'Total', 'Used', 'Free', 'Reserved', 'Remote',
-    ]
+]
+
+# Obviously, there are plenty more
+ScontrolConfigFields = [
+    'ClusterName', 'AccountingStorageHost',
+]
+
+ScontrolPartitionFields = [
+    'PartitionName', 'AllowGroups', 'AllowAccounts', 'AllowQos', 'AllocNodes', 'Default', 'QoS', 'DefaultTime',
+    'DisableRootJobs', 'ExclusiveUser', 'GraceTime', 'Hidden', 'MaxNodes', 'MaxTime', 'MinNodes', 'LLN',
+    'MaxCPUsPerNode', 'Nodes', 'PriorityJobFactor', 'PriorityTier', 'RootOnly', 'ReqResv', 'OverSubscribe',
+    'OverTimeLimit', 'PreemptMode', 'State', 'TotalCPUs', 'TotalNodes', 'SelectTypeParameters', 'JobDefaults',
+    'DefMemPerCPU', 'MaxMemPerNode', 'TRESBillingWeights',
+]
 
 SlurmReservation = namedtuple_with_defaults('SlurmReservation', ScontrolReservationFields)
 SlurmLicense = namedtuple_with_defaults('SlurmLicense', ScontrolLicenseFields)
+SlurmConfig = namedtuple_with_defaults('SlurmConfig', ScontrolConfigFields)
+SlurmPartition = namedtuple_with_defaults('SlurmPartition', ScontrolPartitionFields)
 
 
 def mkSlurmReservation(fields):
@@ -58,6 +78,21 @@ def mkSlurmLicense(fields):
     for key in ['Total', 'Used', 'Free', 'Reserved']:
         fields[key] = int(fields[key])
     lic = mkNamedTupleInstance(fields, SlurmLicense)
+    return lic
+
+
+def mkSlurmConfig(fields):
+    """Make a named tuple from the given fields"""
+    filtered = dict([(k, v) for k,v in fields.items() if k in ScontrolConfigFields])
+    config = mkNamedTupleInstance(filtered, SlurmConfig)
+    return config
+
+
+def mkSlurmPartition(fields):
+    """Make a named tuple from the given fields"""
+    for key in ['TotalCPUs', 'TotalNodes', 'DefMemPerCPU', 'MaxMemPerNode']:
+        fields[key] = int(fields[key])
+    lic = mkNamedTupleInstance(fields, SlurmPartition)
     return lic
 
 
@@ -76,12 +111,21 @@ def parse_scontrol_line(line, info_type):
     # output should have eg 'Flags=' or 'Account=(null)'
     fields = dict([x.split("=", 1) for x in shlex.split(line)])
 
+    # convert all null to None
+    for key in fields.keys():
+        if fields[key] == '(null)':
+            fields[key] = None
+
     # sanity check for keys vs the fields?
 
     if info_type == ScontrolTypes.license:
         creator = mkSlurmLicense
     elif info_type == ScontrolTypes.reservation:
         creator = mkSlurmReservation
+    elif info_type == ScontrolTypes.config:
+        creator = mkSlurmConfig
+    elif info_type == ScontrolTypes.partition:
+        creator = mkSlurmPartition
     else:
         return None
 
@@ -125,6 +169,15 @@ def get_scontrol_info(info_type):
     if exitcode != 0:
         raise Exception("Cannot run scontrol")
 
-    info = parse_scontrol_dump(contents.splitlines(), info_type)
+    lines = contents.splitlines()
+    if info_type == ScontrolTypes.config:
+        # there is one config, so convert the multilines in single line
+        fields = []
+        for line in lines:
+            if SLURM_SCONTROL_CONFIG_REGEX.match(line):
+                fields.append(SLURM_SCONTROL_CONFIG_REGEX.sub(r'\1="\2"', line))
+        lines = [" ".join(fields)]
+
+    info = parse_scontrol_dump(lines, info_type)
 
     return info

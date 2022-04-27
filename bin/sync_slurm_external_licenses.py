@@ -17,6 +17,20 @@
 This script synchronises external license server information with slurm license tracking.
 
 The script must result in an idempotent execution, to ensure nothing breaks.
+
+See also https://bugs.schedmd.com/show_bug.cgi?id=2231#c9
+
+A mechanism that I have heard of being used is to:
+1. Configure in Slurm the total number of licenses of each type which exist (e.g. "FOO=10")
+2. Using some script to poll FlexLM in order to determine how many licenses have been claimed
+   by anyone on any system (e.g. "FOO=5")
+3. That same script polls the Slurm system to determine how many licenses that Slurm system
+   has allocated (e.g. "FOO=3")
+4. We now know how many licenses were consumed outside of that one Slurm system (e.g. 5 - 3 = 2).
+   Create or modify an advanced reservation that exists forever and reserves those licenses (e.g. "FOO=2").
+5. Sleep  for a while
+6. Go to step 2.
+
 """
 
 # See example imnplementation of https://gitlab.com/ggeurts/slurm-license_monitor/-/tree/master/
