@@ -36,7 +36,8 @@ from vsc.config.base import (
     GENT, DATA_KEY, SCRATCH_KEY, DEFAULT_VOS_ALL, VSC_PRODUCTION_SCRATCH, INSTITUTE_VOS_BY_INSTITUTE,
     VO_SHARED_PREFIX_BY_INSTITUTE, VO_PREFIX_BY_INSTITUTE, STORAGE_SHARED_SUFFIX
 )
-from vsc.filesystem.gpfs import GpfsOperations, GpfsOperationError, PosixOperations
+from vsc.filesystem.gpfs import GpfsOperations, GpfsOperationError, PosixOperations, PosixOperationError
+from vsc.filesystem.oceanstor import OceanStorOperations, OceanStorOperationError
 from vsc.utils.missing import Monoid, MonoidDict
 
 
@@ -91,8 +92,16 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         else:
             self.storage = storage
 
-        self.gpfs = GpfsOperations()
-        self.posix = PosixOperations()
+        # initialize storage backend for each filesystem
+        for fs_name, filesystem in self.storage[host_institute].items():
+            if filesystem.backend == 'gpfs':
+                filesystem.backend_operator = (GpfsOperations(), GpfsOperationError)
+            elif filesystem.backend == 'oceanstor':
+                oceanstor_api = (filesystem.api_url, filesystem.api_account, filesystem.api_user, filesystem.api_pwd)
+                filesystem.backend_operator = (OceanStorOperations(*oceanstor_api), OceanStorOperationError)
+            else:
+                # fallback to POSIX
+                filesystem.backend_operator = (PosixOperations(), PosixOperationError)
 
         self.dry_run = False
 
@@ -171,29 +180,29 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         """Return a list with all the VO members in it."""
         return self.vo.members
 
-    def _get_path(self, storage, mount_point="gpfs"):
+    def _get_path(self, storage, mount_point="backend"):
         """Get the path for the (if any) user directory on the given storage."""
 
         (path, _) = self.storage.path_templates[self.host_institute][storage]['vo'](self.vo.vsc_id)
         if mount_point == "login":
             mount_path = self.storage[self.host_institute][storage].login_mount_point
-        elif mount_point == "gpfs":
-            mount_path = self.storage[self.host_institute][storage].gpfs_mount_point
+        elif mount_point == "backend":
+            mount_path = self.storage[self.host_institute][storage].backend_mount_point
         else:
-            logging.error("mount_point (%s)is not login or gpfs", mount_point)
+            logging.error("mount_point (%s)is not login or backend", mount_point)
             raise Exception()
 
         return os.path.join(mount_path, path)
 
-    def _data_path(self, mount_point="gpfs"):
+    def _data_path(self, mount_point="backend"):
         """Return the path to the VO data fileset on GPFS"""
         return self._get_path(VSC_DATA, mount_point)
 
-    def _data_shared_path(self, mount_point="gpfs"):
+    def _data_shared_path(self, mount_point="backend"):
         """Return the path the VO shared data fileset on GPFS"""
         return self._get_path(VSC_DATA_SHARED, mount_point)
 
-    def _scratch_path(self, storage, mount_point="gpfs"):
+    def _scratch_path(self, storage, mount_point="backend"):
         """Return the path to the VO scratch fileset on GPFS.
 
         @type storage: string
@@ -201,7 +210,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         """
         return self._get_path(storage, mount_point)
 
-    def _create_fileset(self, filesystem_name, path, parent_fileset=None, fileset_name=None, group_owner_id=None):
+    def _create_fileset(self, storage, path, parent_fileset=None, fileset_name=None, group_owner_id=None):
         """Create a fileset for the VO on the data filesystem.
 
         - creates the fileset if it does not already exist
@@ -211,7 +220,18 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         The parent_fileset is used to support older (< 3.5.x) GPFS setups still present in our system
         """
-        self.gpfs.list_filesets()
+        fs_backend, fs_backend_err = storage.backend_operator
+
+        try:
+            filesystem_name = storage.filesystem
+        except AttributeError:
+            logging.exception("Trying to access non-existent attribute 'filesystem' in the data storage instance")
+
+        try:
+            fs_backend.list_filesets()
+        except AttributeError:
+            logging.exception("Storage backend %s does not support listing filesets" % storage.backend)
+
         if not fileset_name:
             fileset_name = self.vo.vsc_id
 
@@ -220,76 +240,88 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         else:
             fileset_group_owner_id = self.vo.vsc_id_number
 
-        if not self.gpfs.get_fileset_info(filesystem_name, fileset_name):
+        if not fs_backend.get_fileset_info(filesystem_name, fileset_name):
             logging.info("Creating new fileset on %s with name %s and path %s",
                          filesystem_name, fileset_name, path)
             base_dir_hierarchy = os.path.dirname(path)
-            self.gpfs.make_dir(base_dir_hierarchy)
+            fs_backend.make_dir(base_dir_hierarchy)
 
             # HACK to support versions older than 3.5 in our setup
             if parent_fileset is None:
-                self.gpfs.make_fileset(path, fileset_name)
+                fs_backend.make_fileset(path, fileset_name)
             else:
-                self.gpfs.make_fileset(path, fileset_name, parent_fileset)
+                fs_backend.make_fileset(path, fileset_name, parent_fileset)
         else:
             logging.info("Fileset %s already exists for VO %s ... not creating again.",
                          fileset_name, self.vo.vsc_id)
 
-        self.gpfs.chmod(0o770, path)
+        fs_backend.chmod(0o770, path)
 
         try:
             moderator = mkVscAccount(self.rest_client.account[self.vo.moderators[0]].get()[1])
         except HTTPError:
             logging.exception("Cannot obtain moderator information from account page, setting ownership to nobody")
-            self.gpfs.chown(pwd.getpwnam('nobody').pw_uid, fileset_group_owner_id, path)
+            fs_backend.chown(pwd.getpwnam('nobody').pw_uid, fileset_group_owner_id, path)
         except IndexError:
             logging.error("There is no moderator available for VO %s", self.vo.vsc_id)
-            self.gpfs.chown(pwd.getpwnam('nobody').pw_uid, fileset_group_owner_id, path)
+            fs_backend.chown(pwd.getpwnam('nobody').pw_uid, fileset_group_owner_id, path)
         else:
-            self.gpfs.chown(moderator.vsc_id_number, fileset_group_owner_id, path)
+            fs_backend.chown(moderator.vsc_id_number, fileset_group_owner_id, path)
 
     def create_data_fileset(self):
         """Create the VO's directory on the HPC data filesystem. Always set the quota."""
         path = self._data_path()
         try:
-            fs = self.storage[self.host_institute][VSC_DATA].filesystem
-        except AttributeError:
-            logging.exception("Trying to access non-existent attribute 'filesystem' in the data storage instance")
+            storage = self.storage[self.host_institute][VSC_DATA]
         except KeyError:
-            logging.exception("Trying to access non-existent field %s in the data storage dictionary", VSC_DATA)
-        self._create_fileset(fs, path)
+            errmsg = "Trying to access non-existent field %s in the data storage dictionary"
+            logging.exception(errmsg, VSC_DATA)
+        else:
+            self._create_fileset(storage, path)
 
     def create_data_shared_fileset(self):
         """Create a VO directory for sharing data on the HPC data filesystem. Always set the quota."""
         path = self._data_shared_path()
-        msg = "Trying to access non-existent"
         try:
-            fs = self.storage[self.host_institute][VSC_DATA_SHARED].filesystem
-        except AttributeError:
-            logging.exception("%s attribute 'filesystem' in the shared data storage instance", msg)
+            storage = self.storage[self.host_institute][VSC_DATA_SHARED]
         except KeyError:
-            logging.exception("%s field %s in the shared data storage dictionary", msg, VSC_DATA_SHARED)
-        self._create_fileset(fs, path,
-                             fileset_name=self.sharing_group.vsc_id,
-                             group_owner_id=self.sharing_group.vsc_id_number)
+            errmsg = "Trying to access non-existent field %s in the shared data storage dictionary"
+            logging.exception(errmsg, VSC_DATA_SHARED)
+        else:
+            self._create_fileset(
+                storage,
+                path,
+                fileset_name=self.sharing_group.vsc_id,
+                group_owner_id=self.sharing_group.vsc_id_number,
+            )
 
     def create_scratch_fileset(self, storage_name):
         """Create the VO's directory on the HPC data filesystem. Always set the quota."""
-        msg = "Trying to access non-existent"
+        path = self._scratch_path(storage_name)
         try:
-            path = self._scratch_path(storage_name)
-            if self.storage[self.host_institute][storage_name].version >= (3, 5, 0, 0):
-                self._create_fileset(self.storage[self.host_institute][storage_name].filesystem, path)
-            else:
-                self._create_fileset(self.storage[self.host_institute][storage_name].filesystem, path, 'root')
-        except AttributeError:
-            logging.exception("%s attribute 'filesystem' in the scratch storage instance", msg)
+            storage = self.storage[self.host_institute][storage_name]
         except KeyError:
-            logging.exception("%s field %s in the scratch storage dictionary", msg, storage_name)
+            errmsg = "Trying to access non-existent field %s in the scratch storage dictionary"
+            logging.exception(errmsg, storage_name)
 
-    def _create_vo_dir(self, path):
+        if storage.backend == 'gpfs':
+            if storage.version >= (3, 5, 0, 0):
+                self._create_fileset(storage, path)
+            else:
+                self._create_fileset(storage, path, 'root')
+        else:
+            self._create_fileset(storage, path)
+
+    def _create_vo_dir(self, path, storage_name=VSC_DATA):
         """Create a user owned directory on the GPFS."""
-        self.gpfs.make_dir(path)
+        try:
+            storage = self.storage[self.host_institute][storage_name]
+        except KeyError:
+            errmsg = "Trying to access non-existent field %s in the storage dictionary"
+            logging.exception(errmsg, storage_name)
+        else:
+            fs_backend, fs_backend_err = storage.backend_operator
+            fs_backend.make_dir(path)
 
     def _set_quota(self, storage_name, path, quota, fileset_name=None):
         """Set FILESET quota on the FS for the VO fileset.
@@ -298,15 +330,27 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         """
         if not fileset_name:
             fileset_name = self.vo.vsc_id
-        try:
-            # expressed in bytes, retrieved in KiB from the backend
-            hard = quota * 1024 * self.storage[self.host_institute][storage_name].data_replication_factor
-            soft = int(hard * self.vsc.quota_soft_fraction)
 
+        try:
+            storage = self.storage[self.host_institute][storage_name]
+        except KeyError:
+            errmsg = "Trying to access non-existent field %s in the storage dictionary"
+            logging.exception(errmsg, storage_name)
+        else:
+            fs_backend, fs_backend_err = storage.backend_operator
+
+        # expressed in bytes, retrieved in KiB from the account backend
+        hard = quota * 1024
+        if storage.backend == 'gpfs':
+            hard *= storage.data_replication_factor
+
+        soft = int(hard * self.vsc.quota_soft_fraction)
+
+        try:
             # LDAP information is expressed in KiB, GPFS wants bytes.
-            self.gpfs.set_fileset_quota(soft, path, fileset_name, hard)
-            self.gpfs.set_fileset_grace(path, self.vsc.vo_storage_grace_time)  # 7 days
-        except GpfsOperationError:
+            fs_backend.set_fileset_quota(soft, path, fileset_name, hard)
+            fs_backend.set_fileset_grace(path, self.vsc.vo_storage_grace_time)  # 7 days
+        except fs_backend_err:
             logging.exception("Unable to set quota on path %s", path)
             raise
 
@@ -355,11 +399,21 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         @type quota: integer (hard value)
         """
         try:
-            hard = quota * 1024 * self.storage[self.host_institute][storage_name].data_replication_factor
-            soft = int(hard * self.vsc.quota_soft_fraction)
+            storage = self.storage[self.host_institute][storage_name]
+        except KeyError:
+            errmsg = "Trying to access non-existent field %s in the storage dictionary"
+            logging.exception(errmsg, storage_name)
+        else:
+            fs_backend, fs_backend_err = storage.backend_operator
 
-            self.gpfs.set_user_quota(soft=soft, user=int(member.account.vsc_id_number), obj=path, hard=hard)
-        except GpfsOperationError:
+        hard = quota * 1024
+        if storage.backend == 'gpfs':
+            hard *= storage.data_replication_factor
+        soft = int(hard * self.vsc.quota_soft_fraction)
+
+        try:
+            fs_backend.set_user_quota(soft=soft, user=int(member.account.vsc_id_number), obj=path, hard=hard)
+        except fs_backend_err:
             logging.exception("Unable to set USR quota for member %s on path %s", member.account.vsc_id, path)
             raise
 
@@ -429,38 +483,48 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             logging.error("No VO %s scratch quota set for member %s on %s",
                           self.vo.vsc_id, member.account.vsc_id, storage_name)
 
-    def _create_member_dir(self, member, target):
+    def _create_member_dir(self, member, target, storage_name):
         """Create a member-owned directory in the VO fileset."""
-        self.gpfs.create_stat_directory(
+        try:
+            storage = self.storage[self.host_institute][storage_name]
+        except KeyError:
+            errmsg = "Trying to access non-existent field %s in the storage dictionary"
+            logging.exception(errmsg, storage_name)
+        else:
+            fs_backend, fs_backend_err = storage.backend_operator
+
+        fs_backend.create_stat_directory(
             target,
             0o700,
             int(member.account.vsc_id_number),
             int(member.usergroup.vsc_id_number),
             # we should not override permissions on an existing dir where users may have changed them
-            override_permissions=False)
+            override_permissions=False
+        )
 
     def create_member_data_dir(self, member):
         """Create a directory on data in the VO fileset that is owned
         by the member with name $VSC_DATA_VO/<vscid>."""
         target = os.path.join(self._data_path(), member.user_id)
-        self._create_member_dir(member, target)
+        self._create_member_dir(member, target, VSC_DATA)
 
     def create_member_scratch_dir(self, storage_name, member):
         """Create a directory on scratch in the VO fileset that is owned
         by the member with name $VSC_SCRATCH_VO/<vscid>."""
         target = os.path.join(self._scratch_path(storage_name), member.user_id)
-        self._create_member_dir(member, target)
+        self._create_member_dir(member, target, VSC_PRODUCTION_SCRATCH)
 
     def __setattr__(self, name, value):
         """Override the setting of an attribute:
 
-        - dry_run: set this here and in the gpfs and posix instance fields.
+        - dry_run: set this here and in the storage backend instance fields.
         - otherwise, call super's __setattr__()
         """
 
         if name == 'dry_run':
-            self.gpfs.dry_run = value
-            self.posix.dry_run = value
+            for filesystem in self.storage[self.host_institute]:
+                fs_backend, _ = self.storage[self.host_institute][filesystem].backend_operator
+                fs_backend.dry_run = value
 
         super(VscTier2AccountpageVo, self).__setattr__(name, value)
 
