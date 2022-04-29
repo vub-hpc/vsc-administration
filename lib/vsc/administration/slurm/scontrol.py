@@ -31,6 +31,8 @@ SLURM_SCONTROL = "/usr/bin/scontrol"
 SLURM_SCONTROL_CONFIG_REGEX = re.compile("^(.*\S)\s+=\s+(\S.*)$")
 
 
+LICENSE_RESERVATION_PREFIX = 'external_license_'
+
 class ScontrolTypes(Enum):
     reservation = "reservation"
     license = "license"
@@ -50,6 +52,7 @@ ScontrolLicenseFields = [
 
 # Obviously, there are plenty more
 ScontrolConfigFields = [
+    'SLURM_CONF', 'SLURM_VERSION',
     'ClusterName', 'AccountingStorageHost',
 ]
 
@@ -154,7 +157,7 @@ def parse_scontrol_dump(lines, info_type):
     return info
 
 
-def get_scontrol_info(info_type):
+def get_scontrol_info(info_type, as_dict=True):
     """Get slurm info for the given clusterself.
 
     @param info_type: ScontrolTypes
@@ -180,4 +183,91 @@ def get_scontrol_info(info_type):
 
     info = parse_scontrol_dump(lines, info_type)
 
+    if as_dict:
+        field = "%sName" % info_type.value.capitalize()
+        info = dict([(getattr(x, field), x) for x in info])
+
     return info
+
+
+def get_scontrol_config():
+    """Return the scontrol config namedtuple"""
+    return get_scontrol_info(ScontrolTypes.config, as_dict=False).pop()
+
+
+def make_license_reservation_name(licname):
+    """Create reservation name based on license name"""
+    return LICENSE_RESERVATION_PREFIX + licname
+
+
+@mkscontrol('create')
+def create_create_reservation(reservation, settings):
+    """
+    Creates the command to update a reservation
+    """
+    command = [
+        'reservation',
+        'ReservationName={0}'.format(reservation),
+    ]
+
+    for k, v in settings.items():
+        command.append("{0}={1}".format(k, v))
+
+    return command
+
+
+@mkscontrol('update')
+def create_update_reservation(reservation, settings):
+    """
+    Creates the command to update a reservation
+    """
+    command = [
+        'reservation',
+        'ReservationName={0}'.format(reservation),
+    ]
+
+    for k, v in settings.items():
+        command.append("{0}={1}".format(k, v))
+
+    return command
+
+
+@mkscontrol('delete')
+def create_delete_reservation(reservation):
+    """
+    Creates the command to delete a reservation
+    """
+    command = [
+        'reservation',
+        'ReservationName={0}'.format(reservation),
+    ]
+    return command
+
+
+def create_create_license_reservation(licname, value, partition):
+    """
+    Creates the command to create a license reservation
+    """
+    name = make_license_reservation_name(licname)
+    settings = {
+        'Licenses': '{0}:{1}'.format(licname, value),
+        'Partition': partition,
+        'Start': 'now',
+        'Duration': 'infinite',
+        'User': 'root',
+        'Flags': 'LICENSE_ONLY',
+        'NodeCnt': '0',  # otherwise all nodes are placed in the reservation
+    }
+
+    return create_create_reservation(name, settings)
+
+
+def create_update_license_reservation(licname, value):
+    """
+    Creates the command to update a license reservation
+    """
+    name = make_license_reservation_name(licname)
+    settings = {
+        'Licenses': '{0}:{1}'.format(licname, value),
+    }
+    return create_update_reservation(name, settings)

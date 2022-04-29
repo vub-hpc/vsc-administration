@@ -39,7 +39,6 @@ A mechanism that I have heard of being used is to:
 
 from __future__ import print_function
 
-import datetime
 import json
 import logging
 import os
@@ -56,6 +55,12 @@ from vsc.administration.slurm.sacctmgr import (
     create_add_resource_license_command,
     create_remove_resource_license_command,
     create_modify_resource_license_command,
+)
+from vsc.administration.slurm.scontrol import (
+    get_scontrol_info, ScontrolTypes,
+    get_scontrol_config, LICENSE_RESERVATION_PREFIX,
+    make_license_reservation_name, create_create_license_reservation,
+    create_update_license_reservation, create_delete_reservation,
 )
 from vsc.config.base import VSC_SLURM_CLUSTERS, PRODUCTION, PILOT, GENT
 
@@ -235,35 +240,84 @@ def update_license_reservations(licenses, cluster, partition, ignore_reservation
     """
     Create/update the license reservations for each cluster
     """
+    # convert licenses to dict with reservation names
+    rlicenses = {}
+    for licname, lic in licenses.items():
+        lic['fullname'] = licname
+        rlicenses[make_license_reservation_name(licname)] = lic
+
+    # Check this is the correct cluster
+    #   in theory, we can also issue all scontrol commands with extra "cluster name_of_cluster" args
+    slurm_config = get_scontrol_config()
+    if cluster != slurm_config.ClusterName:
+        logging.error("Expected cluster %s, got %s (%s)", cluster, slurm_config.ClusterName, slurm_config)
+        raise Exception("Wrong cluster")
+
+    partitions = get_scontrol_info(ScontrolTypes.partition)
+    if partition not in partitions:
+        logging.error("Expected partiton %s, only have %s", partition, partitions)
+        raise Exception("Wrong partition")
+
+
+    # Get the licenses
+    #    This cluster should see all licenses, incl their usage
+    # Convert to dict with reservation names
+    lics = dict([(make_license_reservation_name(k), v) for k, v in get_scontrol_info(ScontrolTypes.license).items()])
+
     # Get all existing license reservations
     #    only license reservations
     #       remove the ignore_reservations also
-    #[root@master39 ~]# scontrol show lic  --oneliner
-    #LicenseName=comsol3@bogus Total=2 Used=0 Free=2 Reserved=0 Remote=yes
+    # The LICENSE_ONLY flag does not show up in flags
+    ress = dict([(k, v) for k,v in get_scontrol_info(ScontrolTypes.reservation).items()
+                 if v.Licenses is not None
+                 and v.ReservationName.startswith(LICENSE_RESERVATION_PREFIX)
+                 and k not in ignore_reservations
+                 ])
+
+    known = set(list(ress.keys()))
+    config = set(list(rlicenses.keys()))
+
+    remove = known - config
+    new = config - known
+    update = config & known
 
 
-    # license in_use reported by server should be corrected by license known by slurm to be allocated to jobs
-    #    problem is: license known by slurm in use doesn't mean in_use by server
-    #         eg job is started, be application not yet started, or not using as much
+    new_update_cmds = []
 
-    new_update = []
-    remove = []
+    for res in new:
+        lic = rlicenses[res]
+        # no reservation yet, in_use is the starting value
+        new_update_cmds.append(create_create_license_reservation(lic['fullname'], lic['in_use'], partition))
 
-    # Create/update the license reservation data
-    #    What endtime? Safe thing is to block the jobs from executing, so make a never ending reservation?
-    start = datetime.datetime.strftime(datetime.datetime.now()+datetime.timedelta(seconds=10), "%Y-%m-%dT%H:%M:%S")
-    #CMD="scontrol update reservation Reservation=external_"+lic
-    #  Licenses="+lic+"@"+server+":"+str(difference)+"
-    #CMD="scontrol create reservation Reservation=external_"+lic+"@"+server+"
-    #  Licenses="+lic+"@"+server+":"+str(difference)+"
-    #  StartTime=start
-    #  duration="infinite"
-    #  partition=cluster
-    #  user="root" flags=["LICENSE_ONLY"] partition=partition
+    for res in update:
+        lic = rlicenses[res]
+
+        current_value = lics[res].Reserved
+
+        # license in_use reported by server should be corrected by license known by slurm to be allocated to jobs
+        #    problem is: license known by slurm in use doesn't mean in_use by server
+        #         eg job is started, be application not yet started, or not using as much
+        # value is difference between seen as Used by slurm and reported in_use
+        #     The externally used licenses remain as Free according to slurm, but are not usable by slurm.
+        #     They are reserved for user root.
+        used = lics[res].Used
+        in_use = lic['in_use']
+        if used > in_use:
+            # jobs claiming to use/need more licenses?
+            logging.debug("More %s licenses used according to slurm %s than reported by server %s", res, used, in_use)
+            value = 0
+        else:
+            value = in_use - used
+
+        if force_update or value != current_value:
+            new_update_cmds.append(create_update_license_reservation(lic['fullname'], value))
 
     # Cleanup reservations
+    remove_cmds = []
+    for res in remove:
+        remove_cmds.append(create_delete_reservation(res))
 
-    return new_update, remove
+    return new_update_cmds, remove_cmds
 
 
 def main():

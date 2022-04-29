@@ -25,7 +25,7 @@ from mock import patch, MagicMock
 from vsc.install.testing import TestCase
 
 from vsc.administration.slurm.scontrol import (
-    parse_scontrol_dump, get_scontrol_info,
+    parse_scontrol_dump, get_scontrol_info, get_scontrol_config,
     ScontrolTypes, SlurmReservation, SlurmLicense, SlurmConfig, SlurmPartition,
     )
 
@@ -72,10 +72,12 @@ class SlurmScontrolTest(TestCase):
         ]))
 
         # test config output (this is re-formatted oneliner output)
-        scontrol_output = ['ClusterName="mycluster" AccountingStorageHost="mydb" NotRelevant="abc def"']
+        scontrol_output = ['ClusterName="mycluster" AccountingStorageHost="mydb" NotRelevant="abc def" SLURM_CONF="/etc/slurm/slurm.conf" SLURM_VERSION="20.11.6"']
         info = parse_scontrol_dump(scontrol_output, ScontrolTypes.config)
         self.assertEqual(info, set([
-            SlurmConfig(ClusterName='mycluster', AccountingStorageHost='mydb')
+            SlurmConfig(ClusterName='mycluster', AccountingStorageHost='mydb', SLURM_CONF='/etc/slurm/slurm.conf',
+                        SLURM_VERSION='20.11.6',
+                        )
         ]))
 
         # test partition output
@@ -96,6 +98,8 @@ AccountingStorageEnforce = associations
 AccountingStorageHost   = mydb
 AccountingStorageExternalHost = (null)
 ClusterName             = mycluster
+SLURM_CONF              = /etc/slurm/slurm.conf
+SLURM_VERSION           = 20.11.6
 TrackWCKey              = No
 TreeWidth               = 50
 UsePam                  = No
@@ -114,7 +118,7 @@ CgroupAutomount         = no
 CgroupMountpoint        = (null)
 """)
 
-        info = get_scontrol_info(ScontrolTypes.config)
+        info = get_scontrol_info(ScontrolTypes.config, as_dict=False)
 
         logging.debug("run calls: %s", masync.mock_calls)
 
@@ -126,5 +130,10 @@ CgroupMountpoint        = (null)
         self.assertEqual(kwargs, {})
 
         self.assertEqual(info, set([
-            SlurmConfig(ClusterName='mycluster', AccountingStorageHost='mydb')
+            SlurmConfig(ClusterName='mycluster', AccountingStorageHost='mydb', SLURM_CONF='/etc/slurm/slurm.conf',
+                        SLURM_VERSION='20.11.6',
+                        )
         ]))
+
+        config = get_scontrol_config()
+        self.assertEqual(info, set([config]))
