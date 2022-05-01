@@ -411,10 +411,17 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             hard *= storage.data_replication_factor
         soft = int(hard * self.vsc.quota_soft_fraction)
 
+        if storage.backend == 'oceanstor':
+            # OceanStor accepts usernames
+            member_id = member.account.vsc_id
+        else:
+            # GPFS accepts UIDs
+            member_id = int(member.account.vsc_id_number)
+
         try:
-            fs_backend.set_user_quota(soft=soft, user=int(member.account.vsc_id_number), obj=path, hard=hard)
+            fs_backend.set_user_quota(soft=soft, user=member_id, obj=path, hard=hard)
         except fs_backend_err:
-            logging.exception("Unable to set USR quota for member %s on path %s", member.account.vsc_id, path)
+            logging.exception("Unable to set USR quota for member %s on path %s", member_id, path)
             raise
 
     def set_member_data_quota(self, member):
