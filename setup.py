@@ -31,18 +31,11 @@ install_requires = [
     'vsc-filesystems >= 1.0.1',
     'vsc-utils >= 2.0.0',
     'lockfile >= 0.9.1',
+    'python-ldap',
 ]
 
-if sys.version_info < (3, 0):
-    # enum34 is only required with Python 2
-    install_requires.append('enum34')
-    install_requires.append('python-ldap < 3.3.0')
-else:
-    install_requires.append('python-ldap')
-
-
 PACKAGE = {
-    'version': '3.7.0',
+    'version': '4.0.0',
     'author': [ag, jt],
     'maintainer': [ag, jt],
     'tests_require': ['mock'],
