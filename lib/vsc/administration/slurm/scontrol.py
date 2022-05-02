@@ -204,6 +204,11 @@ def make_license_reservation_name(licname):
     return LICENSE_RESERVATION_PREFIX + licname
 
 
+def _settings_args(settings):
+    """Convert settings dict in k=v list"""
+    return ["{0}={1}".format(k, settings[k]) for k in sorted(settings.keys())]
+
+
 @mkscontrol('create')
 def create_create_reservation(reservation, settings):
     """
@@ -213,9 +218,7 @@ def create_create_reservation(reservation, settings):
         'reservation',
         'ReservationName={0}'.format(reservation),
     ]
-
-    for k, v in settings.items():
-        command.append("{0}={1}".format(k, v))
+    command.extend(_settings_args(settings))
 
     return command
 
@@ -230,8 +233,7 @@ def create_update_reservation(reservation, settings):
         'ReservationName={0}'.format(reservation),
     ]
 
-    for k, v in settings.items():
-        command.append("{0}={1}".format(k, v))
+    command.extend(_settings_args(settings))
 
     return command
 

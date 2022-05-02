@@ -212,9 +212,9 @@ def update_licenses(licenses, clusters, ignore_resources, force_update):
         known = known - skip
         config = config - skip
 
-    remove = known - config
-    new = config - known
-    update = config & known
+    remove = sorted(list(known - config))
+    new = sorted(list(config - known))
+    update = sorted(list(config & known))
 
     new_update_cmds = []
     for name in new:
@@ -295,9 +295,9 @@ def update_license_reservations(licenses, cluster, partition, ignore_reservation
         config = config - skip
 
 
-    remove = known - config
-    new = config - known
-    update = config & known
+    remove = sorted(list(known - config))
+    new = sorted(list(config - known))
+    update = sorted(list(config & known))
 
 
     new_update_cmds = []
