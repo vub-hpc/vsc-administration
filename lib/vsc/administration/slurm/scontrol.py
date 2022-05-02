@@ -145,6 +145,10 @@ def parse_scontrol_dump(lines, info_type):
         for line in lines:
             logging.debug("line %s", line)
             line = line.rstrip()
+
+            if not line:
+                continue
+
             try:
                 parsed = parse_scontrol_line(line, info_type)
             except Exception as err:

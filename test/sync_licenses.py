@@ -30,7 +30,7 @@ from vsc.install.testing import TestCase
 
 from sync_slurm_external_licenses import (
     _parse_lmutil, retrieve_license_data, licenses_data,
-    update_licenses,
+    update_licenses, update_license_reservations
     )
 
 class TestSyncSlurmExtLicenses(TestCase):
@@ -146,11 +146,13 @@ an-5|ano-comp2|License|20|10|flexlm
 """)
 
         licenses = {
-            'ano-1@ano-comp1': {'count': 100, 'skip': True, 'extern': 'ano-comp1',
+            'ano-1@ano-comp1': {'count': 100, 'in_use': 1, 'total': 2, 'extern': 'ano-comp1',
+                                'name': 'ano-1', 'type': 'strange'},
+            'ano-2@ano-comp1': {'count': 100, 'skip': True, 'extern': 'ano-comp1',
                                 'name': 'ano-1', 'type': 'strange'},
             'an-4@ano-comp2': {'count': 200, 'in_use': 5, 'total': 7, 'extern': 'ano-comp2',
                                'name': 'an-4', 'type': 'flexlm'},
-            'an-5@ano-comp2': {'count': 7, 'skip': True, 'extern': 'ano-comp2',
+            'an-5@ano-comp2': {'count': 7, 'in_use': 3, 'total': 4, 'extern': 'ano-comp2',
                                'name': 'an-5', 'type': 'flexlm'},
         }
         nw_up, rem = update_licenses(licenses, ["clust1", "clust2"], [], False)
@@ -171,4 +173,75 @@ an-5|ano-comp2|License|20|10|flexlm
         ])
         self.assertEqual(rem, [
             ['/usr/bin/sacctmgr', '-i', 'remove', 'resource', 'where', 'Type=license', 'Name=comsol', 'Server=bogus', 'ServerType=flexlm'],
+        ])
+
+
+    @patch('vsc.administration.slurm.scontrol.asyncloop')
+    def test_update_licenses_reservations(self, masync):
+
+        licenses = {
+            'ano-1@ano-comp1': {'count': 100, 'in_use': 20, 'total': 120, 'extern': 'ano-comp1',
+                                'name': 'ano-1', 'type': 'strange'},
+            'an-4@ano-comp2': {'count': 200, 'in_use': 5, 'total': 7, 'extern': 'ano-comp2',
+                               'name': 'an-4', 'type': 'flexlm'},
+            'an-5@ano-comp2': {'count': 7, 'skip': True, 'extern': 'ano-comp2',
+                               'name': 'an-5', 'type': 'flexlm'},
+        }
+
+        scontrol_config = """Configuration data as of 2022-04-27T10:07:02
+AccountingStorageBackupHost = (null)
+AccountingStorageEnforce = associations
+AccountingStorageHost   = mydb
+AccountingStorageExternalHost = (null)
+ClusterName             = mycluster
+SLURM_CONF              = /etc/slurm/slurm.conf
+SLURM_VERSION           = 20.11.6
+TrackWCKey              = No
+TreeWidth               = 50
+UsePam                  = No
+UnkillableStepProgram   = (null)
+UnkillableStepTimeout   = 120 sec
+VSizeFactor             = 0 percent
+WaitTime                = 0 sec
+X11Parameters           = (null)
+
+Cgroup Support Configuration:
+AllowedDevicesFile      = (null)
+AllowedKmemSpace        = (null)
+AllowedRAMSpace         = 100.0%
+AllowedSwapSpace        = 0.0%
+CgroupAutomount         = no
+CgroupMountpoint        = (null)
+"""
+
+        scontrol_part = """PartitionName=mypart AllowGroups=gabc,wheel AllowAccounts=ALL AllowQos=ALL AllocNodes=ALL Default=YES QoS=N/A DefaultTime=01:00:00 DisableRootJobs=YES ExclusiveUser=NO GraceTime=0 Hidden=NO MaxNodes=UNLIMITED MaxTime=3-00:00:00 MinNodes=0 LLN=NO MaxCPUsPerNode=UNLIMITED Nodes=node1,node2 PriorityJobFactor=1 PriorityTier=1 RootOnly=NO ReqResv=NO OverSubscribe=NO OverTimeLimit=NONE PreemptMode=OFF State=UP TotalCPUs=32 TotalNodes=2 SelectTypeParameters=NONE JobDefaults=(null) DefMemPerCPU=800 MaxMemPerNode=3200 TRESBillingWeights=CPU=1,Mem=1.33G"""
+
+        scontrol_lic = """LicenseName=comsol3@bogus Total=2 Used=0 Free=2 Reserved=0 Remote=yes
+LicenseName=comsol3@bogus2 Total=20 Used=0 Free=20 Reserved=4 Remote=yes
+LicenseName=ano-1@ano-comp1 Total=120 Used=0 Free=120 Reserved=4 Remote=yes
+"""
+
+        scontrol_res = """ReservationName=hpc123 StartTime=2022-03-28T16:05:00 EndTime=2028-05-28T07:59:59 Duration=2252-15:54:59 Nodes=node123,node456 NodeCnt=2 CoreCnt=512 Features=(null) PartitionName=(null) Flags=MAINT,IGNORE_JOBS,SPEC_NODES TRES=cpu=512 Users=vscabc,vscdef Groups=(null) Accounts=(null) Licenses=(null) State=ACTIVE BurstBuffer=(null) Watts=n/a MaxStartDelay=(null)
+ReservationName=hellohello StartTime=2022-04-19T08:00:00 EndTime=2022-05-19T08:00:00 Duration=30-00:00:00 Nodes=nodeone,nodetwo,nodethree,nodefour NodeCnt=4 CoreCnt=8 Features=(null) PartitionName=party Flags= TRES=cpu=8 Users=(null) Groups=groupies Accounts=myaccount Licenses=(null) State=ACTIVE BurstBuffer=(null) Watts=n/a MaxStartDelay=(null)
+ReservationName=external_license_comsol3@bogus2 StartTime=2022-04-29T12:01:11 EndTime=2023-04-29T12:01:11 Duration=365-00:00:00 Nodes=(null) NodeCnt=0 CoreCnt=0 Features=(null) PartitionName=cubone Flags=ANY_NODES TRES=(null) Users=root Groups=(null) Accounts=(null) Licenses=comsol3@bogus2:4 State=ACTIVE BurstBuffer=(null) Watts=n/a MaxStartDelay=(null)
+ReservationName=external_license_ano-1@ano-comp1 StartTime=2022-04-29T12:01:11 EndTime=2023-04-29T12:01:11 Duration=365-00:00:00 Nodes=(null) NodeCnt=0 CoreCnt=0 Features=(null) PartitionName=cubone Flags=ANY_NODES TRES=(null) Users=root Groups=(null) Accounts=(null) Licenses=ano-1@ano-comp1:4 State=ACTIVE BurstBuffer=(null) Watts=n/a MaxStartDelay=(null)
+"""
+
+        masync.side_effect = [
+            (0, scontrol_config),
+            (0, scontrol_part),
+            (0, scontrol_lic),
+            (0, scontrol_res),
+            ]
+
+        nw_up, rem = update_license_reservations(licenses, 'mycluster', 'mypart', [], False)
+        logging.debug("run calls: %s", masync.mock_calls)
+
+        logging.debug("new_update %s remove %s", nw_up, rem)
+        self.assertEqual(nw_up, [
+            ['/usr/bin/scontrol', 'create', 'reservation', 'ReservationName=external_license_an-4@ano-comp2', 'Licenses=an-4@ano-comp2:5', 'Partition=mypart', 'Start=now', 'Duration=infinite', 'User=root', 'Flags=LICENSE_ONLY', 'NodeCnt=0'],
+            ['/usr/bin/scontrol', 'update', 'reservation', 'ReservationName=external_license_ano-1@ano-comp1', 'Licenses=ano-1@ano-comp1:20'],
+        ])
+        self.assertEqual(rem, [
+            ['/usr/bin/scontrol', 'delete', 'reservation', 'ReservationName=external_license_comsol3@bogus2'],
         ])

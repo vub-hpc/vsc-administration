@@ -206,6 +206,12 @@ def update_licenses(licenses, clusters, ignore_resources, force_update):
     known = set(list(info.keys()))
     config = set(list(licenses.keys()))
 
+    skip = set([x for x in licenses.keys() if licenses[x].get('skip', False)])
+    if skip:
+        logging.warning("License resources to skip: %s", skip)
+        known = known - skip
+        config = config - skip
+
     remove = known - config
     new = config - known
     update = config & known
@@ -213,11 +219,13 @@ def update_licenses(licenses, clusters, ignore_resources, force_update):
     new_update_cmds = []
     for name in new:
         lic = licenses[name]
+        logging.debug("Command to add new license resource %s", lic)
         new_update_cmds.append(create_add_resource_license_command(
             lic['name'], lic['extern'], lic['type'], clusters, lic['count']))
 
     for name in update:
         lic = licenses[name]
+        logging.debug("Command to update license resource %s", lic)
 
         # The info command does not use the "withclusters" option, so no cluster configuration details are shown
         #    In case of new clusters, run with --force_update
@@ -231,6 +239,7 @@ def update_licenses(licenses, clusters, ignore_resources, force_update):
     remove_cmds = []
     for name in remove:
         lic = info[name]
+        logging.debug("Command to remove license resource %s", lic)
         remove_cmds.append(create_remove_resource_license_command(lic.Name, lic.Server, lic.ServerType))
 
     return new_update_cmds, remove_cmds
@@ -263,6 +272,7 @@ def update_license_reservations(licenses, cluster, partition, ignore_reservation
     #    This cluster should see all licenses, incl their usage
     # Convert to dict with reservation names
     lics = dict([(make_license_reservation_name(k), v) for k, v in get_scontrol_info(ScontrolTypes.license).items()])
+    logging.debug("Existing licenses %s", lics)
 
     # Get all existing license reservations
     #    only license reservations
@@ -273,9 +283,17 @@ def update_license_reservations(licenses, cluster, partition, ignore_reservation
                  and v.ReservationName.startswith(LICENSE_RESERVATION_PREFIX)
                  and k not in ignore_reservations
                  ])
+    logging.debug("Existing license reservations %s", ress)
 
     known = set(list(ress.keys()))
     config = set(list(rlicenses.keys()))
+
+    skip = set([x for x in rlicenses.keys() if rlicenses[x].get('skip', False)])
+    if skip:
+        logging.warning("License reservations to skip: %s", skip)
+        known = known - skip
+        config = config - skip
+
 
     remove = known - config
     new = config - known
@@ -286,11 +304,13 @@ def update_license_reservations(licenses, cluster, partition, ignore_reservation
 
     for res in new:
         lic = rlicenses[res]
+        logging.debug("Command to add new license reservation %s", lic)
         # no reservation yet, in_use is the starting value
         new_update_cmds.append(create_create_license_reservation(lic['fullname'], lic['in_use'], partition))
 
     for res in update:
         lic = rlicenses[res]
+        logging.debug("Command to update license reservation %s", lic)
 
         current_value = lics[res].Reserved
 
@@ -315,6 +335,7 @@ def update_license_reservations(licenses, cluster, partition, ignore_reservation
     # Cleanup reservations
     remove_cmds = []
     for res in remove:
+        logging.debug("Command to remove license reservation %s", res)
         remove_cmds.append(create_delete_reservation(res))
 
     return new_update_cmds, remove_cmds
