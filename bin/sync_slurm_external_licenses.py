@@ -278,7 +278,7 @@ def update_license_reservations(licenses, cluster, partition, ignore_reservation
     #    only license reservations
     #       remove the ignore_reservations also
     # The LICENSE_ONLY flag does not show up in flags
-    ress = dict([(k, v) for k,v in get_scontrol_info(ScontrolTypes.reservation).items()
+    ress = dict([(k, v) for k, v in get_scontrol_info(ScontrolTypes.reservation).items()
                  if v.Licenses is not None
                  and v.ReservationName.startswith(LICENSE_RESERVATION_PREFIX)
                  and k not in ignore_reservations

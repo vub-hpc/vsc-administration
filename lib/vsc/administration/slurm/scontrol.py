@@ -86,7 +86,7 @@ def mkSlurmLicense(fields):
 
 def mkSlurmConfig(fields):
     """Make a named tuple from the given fields"""
-    filtered = dict([(k, v) for k,v in fields.items() if k in ScontrolConfigFields])
+    filtered = dict([(k, v) for k, v in fields.items() if k in ScontrolConfigFields])
     config = mkNamedTupleInstance(filtered, SlurmConfig)
     return config
 
@@ -103,7 +103,7 @@ def mkscontrol(mode):
     """Decorator to prefix common sacctmgr code for mode"""
     def decorator(function):
         def wrapper(*args, **kwargs):
-            prefix = [SLURM_SCONTROL,  mode]
+            prefix = [SLURM_SCONTROL, mode]
             return prefix + function(*args, **kwargs)
         return wrapper
     return decorator
