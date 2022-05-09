@@ -145,7 +145,7 @@ def licenses_data(config_filename, default_tool):
     #        license_type: default flexlm
     #        tool = path to eg lmutil: default from options
     #        software: key of dict is name reported by tool
-    #          name: pseudonymous name, to be used by users in jobs
+    #          name: pseudonymous name, to be used by users in jobs (optional: use software/key otherwise)
     #          count: number of licenses avail
     with open(config_filename) as fh:
         all_extern_data = json.load(fh)
@@ -181,6 +181,8 @@ def licenses_data(config_filename, default_tool):
         for soft, sdata in software.items():
             sdata['extern'] = extern
             sdata['type'] = edata['license_type']
+            if 'name' not in sdata:
+                sdata['name'] = soft
             res["%s@%s" % (sdata['name'], extern)] = sdata
 
     return res
