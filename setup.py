@@ -19,8 +19,6 @@ vsc-administration distribution setup.py
 @author: Andy Georges (Ghent University)
 @author: Jens Timmerman (Ghent University)
 """
-import sys
-
 from vsc.install import shared_setup
 from vsc.install.shared_setup import ag, jt
 
