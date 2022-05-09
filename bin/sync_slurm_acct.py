@@ -25,11 +25,12 @@ import sys
 
 from vsc.accountpage.client import AccountpageClient
 from vsc.accountpage.wrappers import mkVo
-from vsc.administration.slurm.sync import get_slurm_acct_info, SyncTypes, SacctMgrException
-from vsc.administration.slurm.sync import slurm_institute_accounts, slurm_vo_accounts, slurm_user_accounts
+from vsc.administration.slurm.sacctmgr import get_slurm_sacct_info, SacctMgrTypes
+from vsc.administration.slurm.sync import (
+    execute_commands, slurm_institute_accounts, slurm_vo_accounts, slurm_user_accounts,
+    )
 from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, INSTITUTE_VOS_BY_INSTITUTE, PRODUCTION, PILOT
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
-from vsc.utils.run import RunNoShell
 from vsc.utils.script_tools import ExtendedSimpleOption
 from vsc.utils.timestamp import convert_timestamp, write_timestamp, retrieve_timestamp_with_default
 
@@ -43,18 +44,6 @@ MAX_USERS_JOB_CANCEL = 10
 
 class SyncSanityError(Exception):
     pass
-
-
-def execute_commands(commands):
-    """Run the specified commands"""
-
-    for command in commands:
-        logging.info("Running command: %s", command)
-
-        # if one fails, we simply fail the script and should get notified
-        (ec, _) = RunNoShell.run(command)
-        if ec != 0:
-            raise SacctMgrException("Command failed: {0}".format(command))
 
 
 def main():
@@ -107,8 +96,8 @@ def main():
         client = AccountpageClient(token=opts.options.access_token, url=opts.options.account_page_url + "/api/")
         host_institute = opts.options.host_institute
 
-        slurm_account_info = get_slurm_acct_info(SyncTypes.accounts)
-        slurm_user_info = get_slurm_acct_info(SyncTypes.users)
+        slurm_account_info = get_slurm_sacct_info(SacctMgrTypes.accounts)
+        slurm_user_info = get_slurm_sacct_info(SacctMgrTypes.users)
 
         logging.debug("%d accounts found", len(slurm_account_info))
         logging.debug("%d users found", len(slurm_user_info))

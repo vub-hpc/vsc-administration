@@ -1,0 +1,32 @@
+{
+    "ano-comp1": {
+        "server" : "abc.def",
+        "port" : 1234,
+        "license_type" : "strange",
+        "tool" : "/some/path/to/strangetool",
+        "software" : {
+            "really_cool_name" : {
+                "name" : "ano-1",
+                "count" : 100
+            },
+            "not_so_cool_name" : {
+                "name" : "ano-2",
+                "count" : 5
+            }
+        }
+    },
+    "ano-comp2": {
+        "server" : "ghi.jkl",
+        "port" : 5678,
+        "software" : {
+            "mysoft" : {
+                "name" : "an-4",
+                "count" : 200
+            },
+            "supersoft" : {
+                "name" : "an-5",
+                "count" : 7
+            }
+        }
+    }
+}
