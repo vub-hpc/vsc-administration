@@ -126,8 +126,8 @@ class TestSyncSlurmExtLicenses(TestCase):
         self.assertEqual(res, {
             'ano-1@ano-comp1': {'count': 100, 'skip': True, 'extern': 'ano-comp1',
                                 'name': 'ano-1', 'type': 'strange'},
-            'ano-2@ano-comp1': {'count': 5, 'in_use': 3, 'total': 6, 'extern': 'ano-comp1',
-                                'name': 'ano-2', 'type': 'strange'},
+            'not_so_cool_name@ano-comp1': {'count': 5, 'in_use': 3, 'total': 6, 'extern': 'ano-comp1',
+                                'name': 'not_so_cool_name', 'type': 'strange'},
             'an-4@ano-comp2': {'count': 200, 'in_use': 5, 'total': 7, 'extern': 'ano-comp2',
                                'name': 'an-4', 'type': 'flexlm'},
             'an-5@ano-comp2': {'count': 7, 'skip': True, 'extern': 'ano-comp2',
