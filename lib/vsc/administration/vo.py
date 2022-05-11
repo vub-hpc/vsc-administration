@@ -97,8 +97,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             if filesystem.backend == 'gpfs':
                 filesystem.backend_operator = (GpfsOperations(), GpfsOperationError)
             elif filesystem.backend == 'oceanstor':
-                oceanstor_api = (filesystem.api_url, filesystem.api_account, filesystem.api_user, filesystem.api_pwd)
-                filesystem.backend_operator = (OceanStorOperations(*oceanstor_api), OceanStorOperationError)
+                filesystem.backend_operator = (OceanStorOperations(**filesystem.api), OceanStorOperationError)
             else:
                 # fallback to POSIX
                 filesystem.backend_operator = (PosixOperations(), PosixOperationError)
