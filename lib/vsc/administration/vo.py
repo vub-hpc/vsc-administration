@@ -36,8 +36,6 @@ from vsc.config.base import (
     GENT, DATA_KEY, SCRATCH_KEY, DEFAULT_VOS_ALL, VSC_PRODUCTION_SCRATCH, INSTITUTE_VOS_BY_INSTITUTE,
     VO_SHARED_PREFIX_BY_INSTITUTE, VO_PREFIX_BY_INSTITUTE, STORAGE_SHARED_SUFFIX
 )
-from vsc.filesystem.gpfs import GpfsOperations, GpfsOperationError, PosixOperations, PosixOperationError
-from vsc.filesystem.oceanstor import OceanStorOperations, OceanStorOperationError
 from vsc.utils.missing import Monoid, MonoidDict
 
 
@@ -92,16 +90,6 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         else:
             self.storage = storage
 
-        # initialize storage backend for each filesystem
-        for fs_name, filesystem in self.storage[host_institute].items():
-            if filesystem.backend == 'gpfs':
-                filesystem.backend_operator = (GpfsOperations(), GpfsOperationError)
-            elif filesystem.backend == 'oceanstor':
-                filesystem.backend_operator = (OceanStorOperations(**filesystem.api), OceanStorOperationError)
-            else:
-                # fallback to POSIX
-                filesystem.backend_operator = (PosixOperations(), PosixOperationError)
-
         self.dry_run = False
 
         self._vo_data_quota_cache = None
@@ -116,7 +104,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         if not self._institute_quota_cache:
             all_quota = [mkVscVoSizeQuota(q) for q in
                          whenHTTPErrorRaise(self.rest_client.vo[self.vo.vsc_id].quota.get,
-                                            "Could not get quotata from accountpage for VO %s" % self.vo.vsc_id)[1]]
+                                            "Could not get quota from accountpage for VO %s" % self.vo.vsc_id)[1]]
             self._institute_quota_cache = [q for q in all_quota if q.storage['institute'] == self.host_institute]
         return self._institute_quota_cache
 
@@ -219,7 +207,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         The parent_fileset is used to support older (< 3.5.x) GPFS setups still present in our system
         """
-        fs_backend, fs_backend_err = storage.backend_operator
+        fs_backend, fs_backend_err = storage.load_operator()
 
         try:
             filesystem_name = storage.filesystem
@@ -319,7 +307,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
         else:
-            fs_backend, fs_backend_err = storage.backend_operator
+            fs_backend, fs_backend_err = storage.load_operator()
             fs_backend.make_dir(path)
 
     def _set_quota(self, storage_name, path, quota, fileset_name=None):
@@ -333,10 +321,9 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         try:
             storage = self.storage[self.host_institute][storage_name]
         except KeyError:
-            errmsg = "Trying to access non-existent field %s in the storage dictionary"
-            logging.exception(errmsg, storage_name)
+            logging.exception("Trying to access non-existent storage: %s", storage_name)
         else:
-            fs_backend, fs_backend_err = storage.backend_operator
+            fs_backend, fs_backend_err = storage.load_operator()
 
         # expressed in bytes, retrieved in KiB from the account backend
         hard = quota * 1024
@@ -403,7 +390,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
         else:
-            fs_backend, fs_backend_err = storage.backend_operator
+            fs_backend, fs_backend_err = storage.load_operator()
 
         hard = quota * 1024
         if storage.backend == 'gpfs':
@@ -497,7 +484,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
         else:
-            fs_backend, fs_backend_err = storage.backend_operator
+            fs_backend, fs_backend_err = storage.load_operator()
 
         fs_backend.create_stat_directory(
             target,
@@ -529,7 +516,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         if name == 'dry_run':
             for filesystem in self.storage[self.host_institute]:
-                fs_backend, _ = self.storage[self.host_institute][filesystem].backend_operator
+                fs_backend, _ = self.storage[self.host_institute][filesystem].load_operator()
                 fs_backend.dry_run = value
 
         super(VscTier2AccountpageVo, self).__setattr__(name, value)
