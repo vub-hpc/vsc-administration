@@ -35,8 +35,6 @@ from vsc.config.base import (
     NEW, MODIFIED, MODIFY, ACTIVE, HOME_KEY, DATA_KEY, SCRATCH_KEY,
     STORAGE_SHARED_SUFFIX,
 )
-from vsc.filesystem.gpfs import GpfsOperations
-from vsc.filesystem.posix import PosixOperations
 from vsc.utils.py2vs3 import ensure_ascii_string
 
 # Cache for user instances
@@ -155,8 +153,6 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         self.institute_storage = storage[self.host_institute]
 
         self.vsc = VSC()
-        self.gpfs = GpfsOperations()  # Only used when needed
-        self.posix = PosixOperations()
 
     def _init_cache(self, **kwargs):
         super(VscTier2AccountpageUser, self)._init_cache(**kwargs)
@@ -232,70 +228,86 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         a VscTier2AccountpageUser instance.
         """
         (path, _) = self.institute_path_templates[self.pickle_storage]['user'](self.account.vsc_id)
-        return os.path.join(self.institute_storage[self.pickle_storage].gpfs_mount_point, path)
+        return os.path.join(self.institute_storage[self.pickle_storage].backend_mount_point, path)
 
-    def _create_grouping_fileset(self, filesystem_name, path, fileset_name):
+    def _create_grouping_fileset(self, storage, path, fileset_name):
         """Create a fileset for a group of 100 user accounts
 
         - creates the fileset if it does not already exist
         """
-        self.gpfs.list_filesets()
+        fs_backend, fs_backend_err = storage.load_operator()
+
+        try:
+            filesystem_name = storage.filesystem
+        except AttributeError:
+            logging.exception("Trying to access non-existent attribute 'filesystem' in the data storage instance")
+
+        try:
+            fs_backend.list_filesets()
+        except AttributeError:
+            logging.exception("Storage backend %s does not support listing filesets" % storage.backend)
+
+        if storage.backend == 'oceanstor':
+            # OceanStor does not support filesets with a different name than its root folder
+            # Use name of root folder as fileset name
+            fileset_name = os.path.basename(path)
+
         logging.info("Trying to create the grouping fileset %s with link path %s", fileset_name, path)
 
-        if not self.gpfs.get_fileset_info(filesystem_name, fileset_name):
+        if not fs_backend.get_fileset_info(filesystem_name, fileset_name):
             logging.info("Creating new fileset on %s with name %s and path %s", filesystem_name, fileset_name, path)
             base_dir_hierarchy = os.path.dirname(path)
-            self.gpfs.make_dir(base_dir_hierarchy)
-            self.gpfs.make_fileset(path, fileset_name)
+            fs_backend.make_dir(base_dir_hierarchy)
+            fs_backend.make_fileset(path, fileset_name)
         else:
             logging.info("Fileset %s already exists for user group of %s ... not creating again.",
                          fileset_name, self.account.vsc_id)
 
-        self.gpfs.chmod(0o755, path)
+        fs_backend.chmod(0o755, path)
 
     def _get_mount_path(self, storage_name, mount_point):
         """Get the mount point for the location we're running"""
         if mount_point == "login":
             mount_path = self.institute_storage[storage_name].login_mount_point
-        elif mount_point == "gpfs":
-            mount_path = self.institute_storage[storage_name].gpfs_mount_point
+        elif mount_point == "backend":
+            mount_path = self.institute_storage[storage_name].backend_mount_point
         else:
-            logging.error("mount_point (%s) is not login or gpfs", mount_point)
-            raise Exception("mount_point (%s) is not designated as gpfs or login" % (mount_point,))
+            logging.error("mount_point (%s) is not login or backend", mount_point)
+            raise Exception("mount_point (%s) is not designated as backend or login" % (mount_point,))
 
         return mount_path
 
-    def _get_path(self, storage_name, mount_point="gpfs"):
+    def _get_path(self, storage_name, mount_point="backend"):
         """Get the path for the (if any) user directory on the given storage_name."""
         (path, _) = self.institute_path_templates[storage_name]['user'](self.account.vsc_id)
         return os.path.join(self._get_mount_path(storage_name, mount_point), path)
 
-    def _get_grouping_path(self, storage_name, mount_point="gpfs"):
+    def _get_grouping_path(self, storage_name, mount_point="backend"):
         """Get the path and the fileset for the user group directory (and associated fileset)."""
         (path, fileset) = self.institute_path_templates[storage_name]['user'](self.account.vsc_id)
         return (os.path.join(self._get_mount_path(storage_name, mount_point), os.path.dirname(path)), fileset)
 
-    def _home_path(self, mount_point="gpfs"):
+    def _home_path(self, mount_point="backend"):
         """Return the path to the home dir."""
         return self._get_path(VSC_HOME, mount_point)
 
-    def _data_path(self, mount_point="gpfs"):
+    def _data_path(self, mount_point="backend"):
         """Return the path to the data dir."""
         return self._get_path(VSC_DATA, mount_point)
 
-    def _scratch_path(self, storage_name, mount_point="gpfs"):
+    def _scratch_path(self, storage_name, mount_point="backend"):
         """Return the path to the scratch dir"""
         return self._get_path(storage_name, mount_point)
 
-    def _grouping_home_path(self, mount_point="gpfs"):
+    def _grouping_home_path(self, mount_point="backend"):
         """Return the path to the grouping fileset for the users on data."""
         return self._get_grouping_path(VSC_HOME, mount_point)
 
-    def _grouping_data_path(self, mount_point="gpfs"):
+    def _grouping_data_path(self, mount_point="backend"):
         """Return the path to the grouping fileset for the users on data."""
         return self._get_grouping_path(VSC_DATA, mount_point)
 
-    def _grouping_scratch_path(self, storage_name, mount_point="gpfs"):
+    def _grouping_scratch_path(self, storage_name, mount_point="backend"):
         """Return the path to the grouping fileset for the users on the given scratch filesystem."""
         return self._get_grouping_path(storage_name, mount_point)
 
@@ -306,15 +318,22 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         @type path: function that yields the actual path for the location.
         """
         try:
+            storage = self.institute_storage[storage_name]
+        except KeyError:
+            logging.exception("Trying to access non-existent institute storage: %s", storage_name)
+        else:
+            fs_backend, fs_backend_err = storage.load_operator()
+        
+        try:
             (grouping_path, fileset) = grouping_f()
-            self._create_grouping_fileset(self.institute_storage[storage_name].filesystem, grouping_path, fileset)
+            self._create_grouping_fileset(storage, grouping_path, fileset)
 
             path = path_f()
-            if self.gpfs.is_symlink(path):
+            if fs_backend.is_symlink(path):
                 logging.warning("Trying to make a user dir, but a symlink already exists at %s", path)
                 return
 
-            self.gpfs.create_stat_directory(
+            fs_backend.create_stat_directory(
                 path,
                 0o700,
                 int(self.account.vsc_id_number),
@@ -349,14 +368,23 @@ class VscTier2AccountpageUser(VscAccountPageUser):
             logging.error("No user quota set for %s", storage_name)
             return
 
-        quota = hard * 1024 * self.institute_storage[storage_name].data_replication_factor
+        try:
+            storage = self.institute_storage[storage_name]
+        except KeyError:
+            logging.exception("Trying to access non-existent institute storage: %s", storage_name)
+        else:
+            fs_backend, fs_backend_err = storage.load_operator()
+
+        quota = hard * 1024
+        if storage.backend == 'gpfs':
+            quota *= storage.data_replication_factor
         soft = int(self.vsc.quota_soft_fraction * quota)
 
         logging.info("Setting quota for %s - %s on %s to %d", self.account.vsc_id, storage_name, path, quota)
 
         # LDAP information is expressed in KiB, GPFS wants bytes.
-        self.gpfs.set_user_quota(soft, int(self.account.vsc_id_number), path, quota)
-        self.gpfs.set_user_grace(path, self.vsc.user_storage_grace_time)  # 7 days
+        fs_backend.set_user_quota(soft, int(self.account.vsc_id_number), path, quota)
+        fs_backend.set_user_grace(path, self.vsc.user_storage_grace_time)  # 7 days
 
     def set_home_quota(self):
         """Set USR quota on the home FS in the user fileset."""
@@ -391,22 +419,32 @@ class VscTier2AccountpageUser(VscAccountPageUser):
 
         Does not overwrite files that may contain user defined content.
         """
+        try:
+            storage = self.institute_storage[VSC_HOME]
+        except KeyError:
+            logging.exception("Trying to access non-existent institute storage: %s", VSC_HOME)
+        else:
+            fs_backend, fs_backend_err = storage.load_operator()
+
         path = self._home_path()
-        self.gpfs.populate_home_dir(int(self.account.vsc_id_number),
-                                    int(self.usergroup.vsc_id_number),
-                                    path,
-                                    [ensure_ascii_string(p.pubkey) for p in self.pubkeys])
+        fs_backend.populate_home_dir(
+            int(self.account.vsc_id_number),
+            int(self.usergroup.vsc_id_number),
+            path,
+            [ensure_ascii_string(p.pubkey) for p in self.pubkeys],
+        )
 
     def __setattr__(self, name, value):
         """Override the setting of an attribute:
 
-        - dry_run: set this here and in the gpfs and posix instance fields.
+        - dry_run: set this here and in the storage backend instance fields.
         - otherwise, call super's __setattr__()
         """
 
         if name == 'dry_run':
-            self.gpfs.dry_run = value
-            self.posix.dry_run = value
+            for filesystem in self.institute_storage:
+                fs_backend, _ = self.institute_storage[filesystem].load_operator()
+                fs_backend.dry_run = value
 
         super(VscTier2AccountpageUser, self).__setattr__(name, value)
 
