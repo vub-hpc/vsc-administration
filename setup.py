@@ -50,6 +50,9 @@ PACKAGE = {
         'vsc-install >= 0.15.3',
     ],
     'install_requires': install_requires,
+    'extras_require': {
+        'oceanstor': ['vsc-filesystem-oceanstor >= 0.5.1'],
+    },
 }
 
 

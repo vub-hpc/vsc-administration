@@ -505,7 +505,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         """Create a directory on scratch in the VO fileset that is owned
         by the member with name $VSC_SCRATCH_VO/<vscid>."""
         target = os.path.join(self._scratch_path(storage_name), member.user_id)
-        self._create_member_dir(member, target, VSC_PRODUCTION_SCRATCH)
+        self._create_member_dir(member, target, storage_name)
 
     def __setattr__(self, name, value):
         """Override the setting of an attribute:
