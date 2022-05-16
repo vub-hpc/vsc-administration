@@ -31,7 +31,7 @@ import vsc.config.base as config
 from vsc.accountpage.wrappers import VscAutogroup
 from vsc.config.base import (
     VSC_DATA, VSC_HOME, GENT_PRODUCTION_SCRATCH, VSC_DATA_SHARED,
-    VSC_PRODUCTION_SCRATCH, BRUSSEL
+    VSC_PRODUCTION_SCRATCH, BRUSSEL, GENT
 )
 from vsc.install.testing import TestCase
 
@@ -291,8 +291,7 @@ class VoDeploymentTest(TestCase):
                                         mock_s_m_d_quota.assert_not_called()
                                         mock_cr_m_d_dir.assert_not_called()
 
-    @patch('vsc.administration.vo.GpfsOperations', autospec=True)
-    def test_create_sharing_fileset(self, mock_gpfs):
+    def test_create_sharing_fileset(self):
 
         test_vo_id = "gvo03442"
 
@@ -305,9 +304,8 @@ class VoDeploymentTest(TestCase):
             mock_mkvscaccount.side_effect = IndexError("Nope")
 
             s = config.VscStorage()
-            mock_gpfs.get_fileset_info.return_value = False
-            mock_gpfs.make_dir.return_value = None
-            mock_gpfs.make_fileset.return_value = None
+            for storage in s[GENT]:
+                s[GENT][storage].backend_operator = (mock.MagicMock(), mock.MagicMock())
 
             test_vo = vo.VscTier2AccountpageVo(test_vo_id, storage=s, rest_client=mc)
 
@@ -327,9 +325,7 @@ class VoDeploymentTest(TestCase):
                     test_vo.create_data_shared_fileset()
 
     @patch("vsc.accountpage.client.AccountpageClient", autospec=True)
-    @patch("vsc.administration.vo.GpfsOperations", autospec=True)
-    @patch("vsc.administration.vo.PosixOperations", autospec=True)
-    def test_process_brussel_vo(self, mock_posix, mock_gpfs, mock_client):
+    def test_process_brussel_vo(self, mock_client):
         """Test to see deploying a Brussel VO works fine"""
         test_vo_id = "bvo00005"
         date = "203112310000"
@@ -448,63 +444,58 @@ class VoDeploymentTest(TestCase):
             ],
         )
 
-        # This shouldn't do anything
-        ok, errors = vo.process_vos(options, [test_vo_id], VSC_HOME, mc, date, host_institute=BRUSSEL)
-        self.assertEqual(errors, {})
-        self.assertEqual(ok, {})
-        self.assertEqual(mock_gpfs.mock_calls, [mock.call()])
-        self.assertEqual(mock_posix.mock_calls, [mock.call()])
+        with patch.object(config.Storage, 'load_operator') as mock_load_operator:
+            backend_operator = mock.MagicMock()
+            backend_operator_err = mock.MagicMock()
+            mock_load_operator.return_value = (backend_operator, backend_operator_err)
 
-        # VSC_DATA test
-        mock_gpfs.reset_mock()
-        mock_posix.reset_mock()
-        ok, errors = vo.process_vos(options, [test_vo_id], VSC_DATA, mc, date, host_institute=BRUSSEL)
-        self.assertEqual(errors, {})
-        self.assertEqual(ok, {"bvo00005": ["vsc10001"]})
-        self.assertEqual(mock_posix.mock_calls, [mock.call()])
-        mock_gpfs.return_value.list_filesets.assert_called()
-        mock_gpfs.return_value.get_fileset_info.assert_called_with("theiadata", "bvo00005")
-        mock_gpfs.return_value.chmod.assert_called_with(504, "/theia/data/brussel/vo/000/bvo00005")
-        mock_gpfs.return_value.chown.assert_called_with(2510001, 2610010, "/theia/data/brussel/vo/000/bvo00005")
-        mock_gpfs.return_value.set_fileset_quota.assert_called_with(
-            204010946560, "/theia/data/brussel/vo/000/bvo00005", "bvo00005", 214748364800
-        )
-        mock_gpfs.return_value.set_fileset_grace.assert_called_with("/theia/data/brussel/vo/000/bvo00005", 604800)
-        mock_gpfs.return_value.set_user_quota.assert_called_with(
-            hard=107374182400, obj="/theia/data/brussel/vo/000/bvo00005", soft=102005473280, user=2510001
-        )
-        mock_gpfs.return_value.create_stat_directory.assert_called_with(
-            "/theia/data/brussel/vo/000/bvo00005/vsc10001", 448, 2510001, 1, override_permissions=False
-        )
+            # This shouldn't do anything
+            ok, errors = vo.process_vos(options, [test_vo_id], VSC_HOME, mc, date, host_institute=BRUSSEL)
+            self.assertEqual(errors, {})
+            self.assertEqual(ok, {})
 
-        # VSC_SCRATCH test
-        mock_gpfs.reset_mock()
-        mock_posix.reset_mock()
-        ok, errors = vo.process_vos(
-            options, [test_vo_id], VSC_PRODUCTION_SCRATCH[BRUSSEL][0], mc, date, host_institute=BRUSSEL
-        )
-        self.assertEqual(errors, {})
-        self.assertEqual(ok, {"bvo00005": ["vsc10001"]})
-        self.assertEqual(mock_posix.mock_calls, [mock.call()])
-        mock_gpfs.return_value.list_filesets.assert_called_with()
-        mock_gpfs.return_value.get_fileset_info.assert_called_with("theiascratch", "bvo00005")
-        mock_gpfs.return_value.chmod.assert_called_with(504, "/theia/scratch/brussel/vo/000/bvo00005")
-        mock_gpfs.return_value.chown.assert_called_with(2510001, 2610010, "/theia/scratch/brussel/vo/000/bvo00005")
-        mock_gpfs.return_value.set_fileset_quota.assert_called_with(
-            102005473280, "/theia/scratch/brussel/vo/000/bvo00005", "bvo00005", 107374182400
-        )
-        mock_gpfs.return_value.set_fileset_grace.assert_called_with("/theia/scratch/brussel/vo/000/bvo00005", 604800)
-        mock_gpfs.return_value.set_user_quota.assert_called_with(
-            hard=53687091200, obj="/theia/scratch/brussel/vo/000/bvo00005", soft=51002736640, user=2510001
-        )
-        mock_gpfs.return_value.create_stat_directory.assert_called_with(
-            "/theia/scratch/brussel/vo/000/bvo00005/vsc10001", 448, 2510001, 1, override_permissions=False
-        )
+            # VSC_DATA test
+            ok, errors = vo.process_vos(options, [test_vo_id], VSC_DATA, mc, date, host_institute=BRUSSEL)
+            self.assertEqual(errors, {})
+            self.assertEqual(ok, {"bvo00005": ["vsc10001"]})
+            backend_operator.list_filesets.assert_called()
+            backend_operator.get_fileset_info.assert_called_with("theiadata", "bvo00005")
+            backend_operator.chmod.assert_called_with(504, "/theia/data/brussel/vo/000/bvo00005")
+            backend_operator.chown.assert_called_with(2510001, 2610010, "/theia/data/brussel/vo/000/bvo00005")
+            backend_operator.set_fileset_quota.assert_called_with(
+                204010946560, "/theia/data/brussel/vo/000/bvo00005", "bvo00005", 214748364800
+            )
+            backend_operator.set_fileset_grace.assert_called_with("/theia/data/brussel/vo/000/bvo00005", 604800)
+            backend_operator.set_user_quota.assert_called_with(
+                hard=107374182400, obj="/theia/data/brussel/vo/000/bvo00005", soft=102005473280, user=2510001
+            )
+            backend_operator.create_stat_directory.assert_called_with(
+                "/theia/data/brussel/vo/000/bvo00005/vsc10001", 448, 2510001, 1, override_permissions=False
+            )
+
+            # VSC_SCRATCH test
+            ok, errors = vo.process_vos(
+                options, [test_vo_id], VSC_PRODUCTION_SCRATCH[BRUSSEL][0], mc, date, host_institute=BRUSSEL
+            )
+            self.assertEqual(errors, {})
+            self.assertEqual(ok, {"bvo00005": ["vsc10001"]})
+            backend_operator.list_filesets.assert_called_with()
+            backend_operator.get_fileset_info.assert_called_with("theiascratch", "bvo00005")
+            backend_operator.chmod.assert_called_with(504, "/theia/scratch/brussel/vo/000/bvo00005")
+            backend_operator.chown.assert_called_with(2510001, 2610010, "/theia/scratch/brussel/vo/000/bvo00005")
+            backend_operator.set_fileset_quota.assert_called_with(
+                102005473280, "/theia/scratch/brussel/vo/000/bvo00005", "bvo00005", 107374182400
+            )
+            backend_operator.set_fileset_grace.assert_called_with("/theia/scratch/brussel/vo/000/bvo00005", 604800)
+            backend_operator.set_user_quota.assert_called_with(
+                hard=53687091200, obj="/theia/scratch/brussel/vo/000/bvo00005", soft=51002736640, user=2510001
+            )
+            backend_operator.create_stat_directory.assert_called_with(
+                "/theia/scratch/brussel/vo/000/bvo00005/vsc10001", 448, 2510001, 1, override_permissions=False
+            )
 
     @patch("vsc.accountpage.client.AccountpageClient", autospec=True)
-    @patch("vsc.administration.vo.GpfsOperations", autospec=True)
-    @patch("vsc.administration.vo.PosixOperations", autospec=True)
-    def test_process_brussel_default_vo(self, mock_posix, mock_gpfs, mock_client):
+    def test_process_brussel_default_vo(self, mock_client):
         """Test for a vsc1 account in the default Brussel VO"""
         test_vo_id = "bvo00001"
         date = "203012310000"
@@ -623,37 +614,28 @@ class VoDeploymentTest(TestCase):
             ],
         )
 
-        # This shouldn't do anything
-        ok, errors = vo.process_vos(options, [test_vo_id], VSC_HOME, mc, date, host_institute=BRUSSEL)
-        self.assertEqual(errors, {})
-        self.assertEqual(ok, {})
-        self.assertEqual(mock_gpfs.mock_calls, [mock.call()])
-        self.assertEqual(mock_posix.mock_calls, [mock.call()])
+        with patch.object(config.Storage, 'load_operator') as mock_load_operator:
+            mock_load_operator.return_value = (mock.MagicMock(), mock.MagicMock())
 
-        # VSC_DATA should also not do anything
-        mock_gpfs.reset_mock()
-        mock_posix.reset_mock()
-        ok, errors = vo.process_vos(options, [test_vo_id], VSC_DATA, mc, date, host_institute=BRUSSEL)
-        self.assertEqual(errors, {})
-        self.assertEqual(ok, {})
-        self.assertEqual(mock_gpfs.mock_calls, [mock.call()])
-        self.assertEqual(mock_posix.mock_calls, [mock.call()])
+            # This shouldn't do anything
+            ok, errors = vo.process_vos(options, [test_vo_id], VSC_HOME, mc, date, host_institute=BRUSSEL)
+            self.assertEqual(errors, {})
+            self.assertEqual(ok, {})
 
-        # VSC_SCRATCH should also not do anything
-        mock_gpfs.reset_mock()
-        mock_posix.reset_mock()
-        ok, errors = vo.process_vos(
-            options, [test_vo_id], VSC_PRODUCTION_SCRATCH[BRUSSEL][0], mc, date, host_institute=BRUSSEL
-        )
-        self.assertEqual(errors, {})
-        self.assertEqual(ok, {})
-        self.assertEqual(mock_gpfs.mock_calls, [mock.call()])
-        self.assertEqual(mock_posix.mock_calls, [mock.call()])
+            # VSC_DATA should also not do anything
+            ok, errors = vo.process_vos(options, [test_vo_id], VSC_DATA, mc, date, host_institute=BRUSSEL)
+            self.assertEqual(errors, {})
+            self.assertEqual(ok, {})
+
+            # VSC_SCRATCH should also not do anything
+            ok, errors = vo.process_vos(
+                options, [test_vo_id], VSC_PRODUCTION_SCRATCH[BRUSSEL][0], mc, date, host_institute=BRUSSEL
+            )
+            self.assertEqual(errors, {})
+            self.assertEqual(ok, {})
 
     @patch("vsc.accountpage.client.AccountpageClient", autospec=True)
-    @patch("vsc.administration.vo.GpfsOperations", autospec=True)
-    @patch("vsc.administration.vo.PosixOperations", autospec=True)
-    def test_process_brussel_default_vo_gent_user(self, mock_posix, mock_gpfs, mock_client):
+    def test_process_brussel_default_vo_gent_user(self, mock_client):
         """Test for a vsc4 account in the default Brussel VO"""
         test_vo_id = "bvo00003"
         date = "203012310000"
@@ -794,40 +776,37 @@ class VoDeploymentTest(TestCase):
             ],
         )
 
-        # This shouldn't do anything
-        ok, errors = vo.process_vos(options, [test_vo_id], VSC_HOME, mc, date, host_institute=BRUSSEL)
-        self.assertEqual(errors, {})
-        self.assertEqual(ok, {})
-        self.assertEqual(mock_gpfs.mock_calls, [mock.call()])
-        self.assertEqual(mock_posix.mock_calls, [mock.call()])
+        with patch.object(config.Storage, 'load_operator') as mock_load_operator:
+            backend_operator = mock.MagicMock()
+            backend_operator_err = mock.MagicMock()
+            mock_load_operator.return_value = (backend_operator, backend_operator_err)
 
-        # VSC_DATA should also not do anything
-        mock_gpfs.reset_mock()
-        mock_posix.reset_mock()
-        ok, errors = vo.process_vos(options, [test_vo_id], VSC_DATA, mc, date, host_institute=BRUSSEL)
-        self.assertEqual(errors, {})
-        self.assertEqual(ok, {})
-        self.assertEqual(mock_gpfs.mock_calls, [mock.call()])
-        self.assertEqual(mock_posix.mock_calls, [mock.call()])
+            # This shouldn't do anything
+            ok, errors = vo.process_vos(options, [test_vo_id], VSC_HOME, mc, date, host_institute=BRUSSEL)
+            self.assertEqual(errors, {})
+            self.assertEqual(ok, {})
 
-        # VSC_SCRATCH: this should allocate space
-        mock_gpfs.reset_mock()
-        mock_posix.reset_mock()
-        ok, errors = vo.process_vos(
-            options, [test_vo_id], VSC_PRODUCTION_SCRATCH[BRUSSEL][0], mc, date, host_institute=BRUSSEL
-        )
-        self.assertEqual(errors, {})
-        self.assertEqual(ok, {'bvo00003': ['vsc40002']})
-        self.assertEqual(mock_posix.mock_calls, [mock.call()])
+            # VSC_DATA should also not do anything
+            ok, errors = vo.process_vos(options, [test_vo_id], VSC_DATA, mc, date, host_institute=BRUSSEL)
+            self.assertEqual(errors, {})
+            self.assertEqual(ok, {})
 
-        mock_gpfs.return_value.list_filesets.assert_called_with()
-        mock_gpfs.return_value.get_fileset_info.assert_called_with("theiascratch", "bvo00003")
-        mock_gpfs.return_value.chmod.assert_called_with(504, "/theia/scratch/brussel/vo/000/bvo00003")
-        mock_gpfs.return_value.chown.assert_called_with(99, 2610008, "/theia/scratch/brussel/vo/000/bvo00003")
-        mock_gpfs.return_value.set_fileset_quota.assert_called_with(
-            102005473280, "/theia/scratch/brussel/vo/000/bvo00003", "bvo00003", 107374182400
-        )
-        mock_gpfs.return_value.set_fileset_grace.assert_called_with("/theia/scratch/brussel/vo/000/bvo00003", 604800)
-        mock_gpfs.return_value.create_stat_directory.assert_called_with(
-            "/theia/scratch/brussel/vo/000/bvo00003/vsc40002", 448, 2540002, 1, override_permissions=False
-        )
+            # VSC_SCRATCH: this should allocate space
+            ok, errors = vo.process_vos(
+                options, [test_vo_id], VSC_PRODUCTION_SCRATCH[BRUSSEL][0], mc, date, host_institute=BRUSSEL
+            )
+            self.assertEqual(errors, {})
+            self.assertEqual(ok, {'bvo00003': ['vsc40002']})
+
+
+            backend_operator.list_filesets.assert_called_with()
+            backend_operator.get_fileset_info.assert_called_with("theiascratch", "bvo00003")
+            backend_operator.chmod.assert_called_with(504, "/theia/scratch/brussel/vo/000/bvo00003")
+            backend_operator.chown.assert_called_with(99, 2610008, "/theia/scratch/brussel/vo/000/bvo00003")
+            backend_operator.set_fileset_quota.assert_called_with(
+                102005473280, "/theia/scratch/brussel/vo/000/bvo00003", "bvo00003", 107374182400
+            )
+            backend_operator.set_fileset_grace.assert_called_with("/theia/scratch/brussel/vo/000/bvo00003", 604800)
+            backend_operator.create_stat_directory.assert_called_with(
+                "/theia/scratch/brussel/vo/000/bvo00003/vsc40002", 448, 2540002, 1, override_permissions=False
+            )

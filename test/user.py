@@ -538,53 +538,65 @@ class UserDeploymentTest(TestCase):
 
                             self.assertEqual(mock_user_instance.create_scratch_dir.called, True)
 
-    @mock.patch('vsc.administration.user.GpfsOperations', autospec=True)
     @mock.patch('vsc.accountpage.client.AccountpageClient', autospec=True)
-    def test_create_home_dir_tier2_user(self, mock_client, mock_gpfsoperations):
+    def test_create_home_dir_tier2_user(self, mock_client):
 
         test_accounts = [(test_account_1, GENT), (test_account_3, BRUSSEL)]
 
-        for account, site in test_accounts:
-            test_account = mkVscAccount(account)
-            accountpageuser = user.VscTier2AccountpageUser(
-                test_account.vsc_id,
-                storage=config.VscStorage(),
-                rest_client=mock_client,
-                account=test_account,
-                host_institute=site)
-            accountpageuser.create_home_dir()
+        with mock.patch.object(config.Storage, 'load_operator') as mock_load_operator:
+            backend_operator = mock.MagicMock()
+            backend_operator_err = mock.MagicMock()
+            mock_load_operator.return_value = (backend_operator, backend_operator_err)
 
-    @mock.patch('vsc.administration.user.GpfsOperations', autospec=True)
+            for account, site in test_accounts:
+                test_account = mkVscAccount(account)
+                accountpageuser = user.VscTier2AccountpageUser(
+                    test_account.vsc_id,
+                    storage=config.VscStorage(),
+                    rest_client=mock_client,
+                    account=test_account,
+                    host_institute=site)
+                accountpageuser.create_home_dir()
+
     @mock.patch('vsc.accountpage.client.AccountpageClient', autospec=True)
-    def test_create_data_dir_tier2_user(self, mock_client, mock_gpfsoperations):
+    def test_create_data_dir_tier2_user(self, mock_client):
 
         test_accounts = [(test_account_1, GENT), (test_account_3, BRUSSEL)]
 
-        for account, site in test_accounts:
-            test_account = mkVscAccount(account)
-            accountpageuser = user.VscTier2AccountpageUser(
-                test_account.vsc_id,
-                storage=config.VscStorage(),
-                rest_client=mock_client,
-                account=test_account,
-                host_institute=site)
-            accountpageuser.create_data_dir()
+        with mock.patch.object(config.Storage, 'load_operator') as mock_load_operator:
+            backend_operator = mock.MagicMock()
+            backend_operator_err = mock.MagicMock()
+            mock_load_operator.return_value = (backend_operator, backend_operator_err)
 
-    @mock.patch('vsc.administration.user.GpfsOperations', autospec=True)
+            for account, site in test_accounts:
+                test_account = mkVscAccount(account)
+                accountpageuser = user.VscTier2AccountpageUser(
+                    test_account.vsc_id,
+                    storage=config.VscStorage(),
+                    rest_client=mock_client,
+                    account=test_account,
+                    host_institute=site)
+                accountpageuser.create_data_dir()
+
     @mock.patch('vsc.accountpage.client.AccountpageClient', autospec=True)
-    def test_create_scratch_dir_tier2_user(self, mock_client, mock_gpfsoperations):
+    def test_create_scratch_dir_tier2_user(self, mock_client):
 
         test_accounts = [(test_account_1, GENT), (test_account_3, BRUSSEL)]
 
-        for account, site in test_accounts:
-            test_account = mkVscAccount(account)
-            accountpageuser = user.VscTier2AccountpageUser(
-                test_account.vsc_id,
-                storage=config.VscStorage(),
-                rest_client=mock_client,
-                account=test_account,
-                host_institute=site)
-            accountpageuser.create_scratch_dir(VSC_PRODUCTION_SCRATCH[site][0])
+        with mock.patch.object(config.Storage, 'load_operator') as mock_load_operator:
+            backend_operator = mock.MagicMock()
+            backend_operator_err = mock.MagicMock()
+            mock_load_operator.return_value = (backend_operator, backend_operator_err)
+
+            for account, site in test_accounts:
+                test_account = mkVscAccount(account)
+                accountpageuser = user.VscTier2AccountpageUser(
+                    test_account.vsc_id,
+                    storage=config.VscStorage(),
+                    rest_client=mock_client,
+                    account=test_account,
+                    host_institute=site)
+                accountpageuser.create_scratch_dir(VSC_PRODUCTION_SCRATCH[site][0])
 
     @mock.patch('vsc.accountpage.client.AccountpageClient', autospec=True)
     def test_process_regular_users_quota(self, mock_client):
