@@ -20,6 +20,7 @@ Original Perl code by Stijn De Weirdt
 @author: Stijn De Weirdt (Ghent University)
 @author: Andy Georges (Ghent University)
 @author: Ward Poelmans (Vrije Universiteit Brussel)
+@author: Alex Domingo (Vrije Universiteit Brussel)
 """
 
 import copy
