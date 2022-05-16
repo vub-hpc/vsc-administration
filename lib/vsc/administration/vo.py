@@ -207,7 +207,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         The parent_fileset is used to support older (< 3.5.x) GPFS setups still present in our system
         """
-        fs_backend, fs_backend_err = storage.load_operator()
+        fs_backend, _ = storage.load_operator()
 
         try:
             filesystem_name = storage.filesystem
@@ -217,7 +217,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         try:
             fs_backend.list_filesets()
         except AttributeError:
-            logging.exception("Storage backend %s does not support listing filesets" % storage.backend)
+            logging.exception("Storage backend %s does not support listing filesets", storage.backend)
 
         if not fileset_name:
             fileset_name = self.vo.vsc_id
@@ -307,7 +307,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
         else:
-            fs_backend, fs_backend_err = storage.load_operator()
+            fs_backend, _ = storage.load_operator()
             fs_backend.make_dir(path)
 
     def _set_quota(self, storage_name, path, quota, fileset_name=None):
@@ -484,7 +484,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
         else:
-            fs_backend, fs_backend_err = storage.load_operator()
+            fs_backend, _ = storage.load_operator()
 
         fs_backend.create_stat_directory(
             target,

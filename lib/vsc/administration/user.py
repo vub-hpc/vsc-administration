@@ -235,7 +235,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
 
         - creates the fileset if it does not already exist
         """
-        fs_backend, fs_backend_err = storage.load_operator()
+        fs_backend, _ = storage.load_operator()
 
         try:
             filesystem_name = storage.filesystem
@@ -245,7 +245,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         try:
             fs_backend.list_filesets()
         except AttributeError:
-            logging.exception("Storage backend %s does not support listing filesets" % storage.backend)
+            logging.exception("Storage backend %s does not support listing filesets", storage.backend)
 
         if storage.backend == 'oceanstor':
             # OceanStor does not support filesets with a different name than its root folder
@@ -322,8 +322,8 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         except KeyError:
             logging.exception("Trying to access non-existent institute storage: %s", storage_name)
         else:
-            fs_backend, fs_backend_err = storage.load_operator()
-        
+            fs_backend, _ = storage.load_operator()
+
         try:
             (grouping_path, fileset) = grouping_f()
             self._create_grouping_fileset(storage, grouping_path, fileset)
@@ -373,7 +373,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         except KeyError:
             logging.exception("Trying to access non-existent institute storage: %s", storage_name)
         else:
-            fs_backend, fs_backend_err = storage.load_operator()
+            fs_backend, _ = storage.load_operator()
 
         quota = hard * 1024
         if storage.backend == 'gpfs':
@@ -424,7 +424,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         except KeyError:
             logging.exception("Trying to access non-existent institute storage: %s", VSC_HOME)
         else:
-            fs_backend, fs_backend_err = storage.load_operator()
+            fs_backend, _ = storage.load_operator()
 
         path = self._home_path()
         fs_backend.populate_home_dir(
