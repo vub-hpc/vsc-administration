@@ -460,17 +460,23 @@ class VoDeploymentTest(TestCase):
             self.assertEqual(ok, {"bvo00005": ["vsc10001"]})
             backend_operator.list_filesets.assert_called()
             backend_operator.get_fileset_info.assert_called_with("theiadata", "bvo00005")
-            backend_operator.chmod.assert_called_with(504, "/theia/data/brussel/vo/000/bvo00005")
-            backend_operator.chown.assert_called_with(2510001, 2610010, "/theia/data/brussel/vo/000/bvo00005")
-            backend_operator.set_fileset_quota.assert_called_with(
-                204010946560, "/theia/data/brussel/vo/000/bvo00005", "bvo00005", 214748364800
+            backend_operator.chmod.assert_called_with(
+                504, "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005"
             )
-            backend_operator.set_fileset_grace.assert_called_with("/theia/data/brussel/vo/000/bvo00005", 604800)
+            backend_operator.chown.assert_called_with(
+                2510001, 2610010, "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005"
+            )
+            backend_operator.set_fileset_quota.assert_called_with(
+                102005473280, "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005", "bvo00005", 107374182400
+            )
+            backend_operator.set_fileset_grace.assert_called_with(
+                "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005", 604800
+            )
             backend_operator.set_user_quota.assert_called_with(
-                hard=107374182400, obj="/theia/data/brussel/vo/000/bvo00005", soft=102005473280, user=2510001
+                hard=53687091200, obj="/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005", soft=51002736640, user="vsc10001"
             )
             backend_operator.create_stat_directory.assert_called_with(
-                "/theia/data/brussel/vo/000/bvo00005/vsc10001", 448, 2510001, 1, override_permissions=False
+                "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005/vsc10001", 448, 2510001, 1, override_permissions=False
             )
 
             # VSC_SCRATCH test
