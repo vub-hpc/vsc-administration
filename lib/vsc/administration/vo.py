@@ -300,8 +300,8 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         else:
             self._create_fileset(storage, path)
 
-    def _create_vo_dir(self, path, storage_name=VSC_DATA):
-        """Create a user owned directory on the GPFS."""
+    def _create_vo_dir(self, path, storage_name):
+        """Create a user owned directory."""
         try:
             storage = self.storage[self.host_institute][storage_name]
         except KeyError:
