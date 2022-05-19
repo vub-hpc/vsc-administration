@@ -51,7 +51,7 @@ PACKAGE = {
     ],
     'install_requires': install_requires,
     'extras_require': {
-        'oceanstor': ['vsc-filesystem-oceanstor >= 0.5.1'],
+        'oceanstor': ['vsc-filesystem-oceanstor >= 0.5.5'],
     },
 }
 
