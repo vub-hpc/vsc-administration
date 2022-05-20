@@ -208,7 +208,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         The parent_fileset is used to support older (< 3.5.x) GPFS setups still present in our system
         """
-        fs_backend, _ = storage.load_operator()
+        fs_backend = storage.load_operator()
 
         try:
             filesystem_name = storage.filesystem
@@ -308,7 +308,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
         else:
-            fs_backend, _ = storage.load_operator()
+            fs_backend = storage.load_operator()
             fs_backend.make_dir(path)
 
     def _set_quota(self, storage_name, path, quota, fileset_name=None):
@@ -324,7 +324,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         except KeyError:
             logging.exception("Trying to access non-existent storage: %s", storage_name)
         else:
-            fs_backend, fs_backend_err = storage.load_operator()
+            fs_backend = storage.load_operator()
 
         # expressed in bytes, retrieved in KiB from the account backend
         hard = quota * 1024
@@ -337,7 +337,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             # LDAP information is expressed in KiB, GPFS wants bytes.
             fs_backend.set_fileset_quota(soft, path, fileset_name, hard)
             fs_backend.set_fileset_grace(path, self.vsc.vo_storage_grace_time)  # 7 days
-        except fs_backend_err:
+        except storage.backend_operator_err:
             logging.exception("Unable to set quota on path %s", path)
             raise
 
@@ -391,7 +391,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
         else:
-            fs_backend, fs_backend_err = storage.load_operator()
+            fs_backend = storage.load_operator()
 
         hard = quota * 1024
         if storage.backend == 'gpfs':
@@ -407,7 +407,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         try:
             fs_backend.set_user_quota(soft=soft, user=member_id, obj=path, hard=hard)
-        except fs_backend_err:
+        except storage.backend_operator_err:
             logging.exception("Unable to set USR quota for member %s on path %s", member_id, path)
             raise
 
@@ -485,7 +485,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
         else:
-            fs_backend, _ = storage.load_operator()
+            fs_backend = storage.load_operator()
 
         fs_backend.create_stat_directory(
             target,
@@ -517,7 +517,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         if name == 'dry_run':
             for filesystem in self.storage[self.host_institute]:
-                fs_backend, _ = self.storage[self.host_institute][filesystem].load_operator()
+                fs_backend = self.storage[self.host_institute][filesystem].load_operator()
                 fs_backend.dry_run = value
 
         super(VscTier2AccountpageVo, self).__setattr__(name, value)
