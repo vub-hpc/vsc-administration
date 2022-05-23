@@ -255,11 +255,13 @@ def create_create_license_reservation(licname, value, partition):
     Creates the command to create a license reservation
     """
     name = make_license_reservation_name(licname)
+    # infinite/unlimited means 1 year
+    days = 20 * 365
     settings = {
         'Licenses': '{0}:{1}'.format(licname, value),
         'Partition': partition,
         'Start': 'now',
-        'Duration': 'infinite',
+        'Duration': f'{days}-0:0:0',
         'User': 'root',
         'Flags': 'LICENSE_ONLY',
         'NodeCnt': '0',  # otherwise all nodes are placed in the reservation
