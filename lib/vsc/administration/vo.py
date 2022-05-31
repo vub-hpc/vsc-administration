@@ -37,6 +37,7 @@ from vsc.config.base import (
     GENT, DATA_KEY, SCRATCH_KEY, DEFAULT_VOS_ALL, VSC_PRODUCTION_SCRATCH, INSTITUTE_VOS_BY_INSTITUTE,
     VO_SHARED_PREFIX_BY_INSTITUTE, VO_PREFIX_BY_INSTITUTE, STORAGE_SHARED_SUFFIX
 )
+from vsc.filesystem.operator import load_storage_operator
 from vsc.utils.missing import Monoid, MonoidDict
 
 
@@ -208,7 +209,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         The parent_fileset is used to support older (< 3.5.x) GPFS setups still present in our system
         """
-        fs_backend = storage.load_operator()
+        fs_backend = load_storage_operator(storage)
 
         try:
             filesystem_name = storage.filesystem
@@ -308,7 +309,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
         else:
-            fs_backend = storage.load_operator()
+            fs_backend = load_storage_operator(storage)
             fs_backend.make_dir(path)
 
     def _set_quota(self, storage_name, path, quota, fileset_name=None):
@@ -324,7 +325,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         except KeyError:
             logging.exception("Trying to access non-existent storage: %s", storage_name)
         else:
-            fs_backend = storage.load_operator()
+            fs_backend = load_storage_operator(storage)
 
         # expressed in bytes, retrieved in KiB from the account backend
         hard = quota * 1024
@@ -391,7 +392,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
         else:
-            fs_backend = storage.load_operator()
+            fs_backend = load_storage_operator(storage)
 
         hard = quota * 1024
         if storage.backend == 'gpfs':
@@ -485,7 +486,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
         else:
-            fs_backend = storage.load_operator()
+            fs_backend = load_storage_operator(storage)
 
         fs_backend.create_stat_directory(
             target,
@@ -517,7 +518,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         if name == 'dry_run':
             for filesystem in self.storage[self.host_institute]:
-                fs_backend = self.storage[self.host_institute][filesystem].load_operator()
+                fs_backend = load_storage_operator(self.storage[self.host_institute][filesystem])
                 fs_backend.dry_run = value
 
         super(VscTier2AccountpageVo, self).__setattr__(name, value)

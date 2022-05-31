@@ -305,7 +305,7 @@ class VoDeploymentTest(TestCase):
 
             s = config.VscStorage()
             for storage in s[GENT]:
-                s[GENT][storage].backend_operator = (mock.MagicMock(), mock.MagicMock())
+                s[GENT][storage].backend_operator = mock.MagicMock()
 
             test_vo = vo.VscTier2AccountpageVo(test_vo_id, storage=s, rest_client=mc)
 
@@ -444,61 +444,62 @@ class VoDeploymentTest(TestCase):
             ],
         )
 
-        with patch.object(config.Storage, 'load_operator') as mock_load_operator:
-            backend_operator = mock.MagicMock()
-            backend_operator_err = mock.MagicMock()
-            mock_load_operator.return_value = (backend_operator, backend_operator_err)
+        with patch('vsc.administration.vo.load_storage_operator') as mock_vo_load_storage_operator:
+            with patch('vsc.administration.user.load_storage_operator') as mock_user_load_storage_operator:
+                backend_operator = mock.MagicMock()
+                mock_vo_load_storage_operator.return_value = backend_operator
+                mock_user_load_storage_operator.return_value = backend_operator
 
-            # This shouldn't do anything
-            ok, errors = vo.process_vos(options, [test_vo_id], VSC_HOME, mc, date, host_institute=BRUSSEL)
-            self.assertEqual(errors, {})
-            self.assertEqual(ok, {})
+                # This shouldn't do anything
+                ok, errors = vo.process_vos(options, [test_vo_id], VSC_HOME, mc, date, host_institute=BRUSSEL)
+                self.assertEqual(errors, {})
+                self.assertEqual(ok, {})
 
-            # VSC_DATA test
-            ok, errors = vo.process_vos(options, [test_vo_id], VSC_DATA, mc, date, host_institute=BRUSSEL)
-            self.assertEqual(errors, {})
-            self.assertEqual(ok, {"bvo00005": ["vsc10001"]})
-            backend_operator.list_filesets.assert_called()
-            backend_operator.get_fileset_info.assert_called_with("theiadata", "bvo00005")
-            backend_operator.chmod.assert_called_with(
-                504, "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005"
-            )
-            backend_operator.chown.assert_called_with(
-                2510001, 2610010, "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005"
-            )
-            backend_operator.set_fileset_quota.assert_called_with(
-                102005473280, "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005", "bvo00005", 107374182400
-            )
-            backend_operator.set_fileset_grace.assert_called_with(
-                "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005", 604800
-            )
-            backend_operator.set_user_quota.assert_called_with(
-                hard=53687091200, obj="/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005", soft=51002736640, user="vsc10001"
-            )
-            backend_operator.create_stat_directory.assert_called_with(
-                "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005/vsc10001", 448, 2510001, 1, override_permissions=False
-            )
+                # VSC_DATA test
+                ok, errors = vo.process_vos(options, [test_vo_id], VSC_DATA, mc, date, host_institute=BRUSSEL)
+                self.assertEqual(errors, {})
+                self.assertEqual(ok, {"bvo00005": ["vsc10001"]})
+                backend_operator.list_filesets.assert_called()
+                backend_operator.get_fileset_info.assert_called_with("theiadata", "bvo00005")
+                backend_operator.chmod.assert_called_with(
+                    504, "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005"
+                )
+                backend_operator.chown.assert_called_with(
+                    2510001, 2610010, "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005"
+                )
+                backend_operator.set_fileset_quota.assert_called_with(
+                    102005473280, "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005", "bvo00005", 107374182400
+                )
+                backend_operator.set_fileset_grace.assert_called_with(
+                    "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005", 604800
+                )
+                backend_operator.set_user_quota.assert_called_with(
+                    hard=53687091200, obj="/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005", soft=51002736640, user="vsc10001"
+                )
+                backend_operator.create_stat_directory.assert_called_with(
+                    "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005/vsc10001", 448, 2510001, 1, override_permissions=False
+                )
 
-            # VSC_SCRATCH test
-            ok, errors = vo.process_vos(
-                options, [test_vo_id], VSC_PRODUCTION_SCRATCH[BRUSSEL][0], mc, date, host_institute=BRUSSEL
-            )
-            self.assertEqual(errors, {})
-            self.assertEqual(ok, {"bvo00005": ["vsc10001"]})
-            backend_operator.list_filesets.assert_called_with()
-            backend_operator.get_fileset_info.assert_called_with("theiascratch", "bvo00005")
-            backend_operator.chmod.assert_called_with(504, "/theia/scratch/brussel/vo/000/bvo00005")
-            backend_operator.chown.assert_called_with(2510001, 2610010, "/theia/scratch/brussel/vo/000/bvo00005")
-            backend_operator.set_fileset_quota.assert_called_with(
-                102005473280, "/theia/scratch/brussel/vo/000/bvo00005", "bvo00005", 107374182400
-            )
-            backend_operator.set_fileset_grace.assert_called_with("/theia/scratch/brussel/vo/000/bvo00005", 604800)
-            backend_operator.set_user_quota.assert_called_with(
-                hard=53687091200, obj="/theia/scratch/brussel/vo/000/bvo00005", soft=51002736640, user=2510001
-            )
-            backend_operator.create_stat_directory.assert_called_with(
-                "/theia/scratch/brussel/vo/000/bvo00005/vsc10001", 448, 2510001, 1, override_permissions=False
-            )
+                # VSC_SCRATCH test
+                ok, errors = vo.process_vos(
+                    options, [test_vo_id], VSC_PRODUCTION_SCRATCH[BRUSSEL][0], mc, date, host_institute=BRUSSEL
+                )
+                self.assertEqual(errors, {})
+                self.assertEqual(ok, {"bvo00005": ["vsc10001"]})
+                backend_operator.list_filesets.assert_called_with()
+                backend_operator.get_fileset_info.assert_called_with("theiascratch", "bvo00005")
+                backend_operator.chmod.assert_called_with(504, "/theia/scratch/brussel/vo/000/bvo00005")
+                backend_operator.chown.assert_called_with(2510001, 2610010, "/theia/scratch/brussel/vo/000/bvo00005")
+                backend_operator.set_fileset_quota.assert_called_with(
+                    102005473280, "/theia/scratch/brussel/vo/000/bvo00005", "bvo00005", 107374182400
+                )
+                backend_operator.set_fileset_grace.assert_called_with("/theia/scratch/brussel/vo/000/bvo00005", 604800)
+                backend_operator.set_user_quota.assert_called_with(
+                    hard=53687091200, obj="/theia/scratch/brussel/vo/000/bvo00005", soft=51002736640, user=2510001
+                )
+                backend_operator.create_stat_directory.assert_called_with(
+                    "/theia/scratch/brussel/vo/000/bvo00005/vsc10001", 448, 2510001, 1, override_permissions=False
+                )
 
     @patch("vsc.accountpage.client.AccountpageClient", autospec=True)
     def test_process_brussel_default_vo(self, mock_client):
@@ -620,8 +621,8 @@ class VoDeploymentTest(TestCase):
             ],
         )
 
-        with patch.object(config.Storage, 'load_operator') as mock_load_operator:
-            mock_load_operator.return_value = (mock.MagicMock(), mock.MagicMock())
+        with patch('vsc.administration.vo.load_storage_operator') as mock_load_storage_operator:
+            mock_load_storage_operator.return_value = mock.MagicMock()
 
             # This shouldn't do anything
             ok, errors = vo.process_vos(options, [test_vo_id], VSC_HOME, mc, date, host_institute=BRUSSEL)
@@ -782,37 +783,37 @@ class VoDeploymentTest(TestCase):
             ],
         )
 
-        with patch.object(config.Storage, 'load_operator') as mock_load_operator:
-            backend_operator = mock.MagicMock()
-            backend_operator_err = mock.MagicMock()
-            mock_load_operator.return_value = (backend_operator, backend_operator_err)
+        with patch('vsc.administration.vo.load_storage_operator') as mock_vo_load_storage_operator:
+            with patch('vsc.administration.user.load_storage_operator') as mock_user_load_storage_operator:
+                backend_operator = mock.MagicMock()
+                mock_vo_load_storage_operator.return_value = backend_operator
 
-            # This shouldn't do anything
-            ok, errors = vo.process_vos(options, [test_vo_id], VSC_HOME, mc, date, host_institute=BRUSSEL)
-            self.assertEqual(errors, {})
-            self.assertEqual(ok, {})
+                # This shouldn't do anything
+                ok, errors = vo.process_vos(options, [test_vo_id], VSC_HOME, mc, date, host_institute=BRUSSEL)
+                self.assertEqual(errors, {})
+                self.assertEqual(ok, {})
 
-            # VSC_DATA should also not do anything
-            ok, errors = vo.process_vos(options, [test_vo_id], VSC_DATA, mc, date, host_institute=BRUSSEL)
-            self.assertEqual(errors, {})
-            self.assertEqual(ok, {})
+                # VSC_DATA should also not do anything
+                ok, errors = vo.process_vos(options, [test_vo_id], VSC_DATA, mc, date, host_institute=BRUSSEL)
+                self.assertEqual(errors, {})
+                self.assertEqual(ok, {})
 
-            # VSC_SCRATCH: this should allocate space
-            ok, errors = vo.process_vos(
-                options, [test_vo_id], VSC_PRODUCTION_SCRATCH[BRUSSEL][0], mc, date, host_institute=BRUSSEL
-            )
-            self.assertEqual(errors, {})
-            self.assertEqual(ok, {'bvo00003': ['vsc40002']})
+                # VSC_SCRATCH: this should allocate space
+                ok, errors = vo.process_vos(
+                    options, [test_vo_id], VSC_PRODUCTION_SCRATCH[BRUSSEL][0], mc, date, host_institute=BRUSSEL
+                )
+                self.assertEqual(errors, {})
+                self.assertEqual(ok, {'bvo00003': ['vsc40002']})
 
 
-            backend_operator.list_filesets.assert_called_with()
-            backend_operator.get_fileset_info.assert_called_with("theiascratch", "bvo00003")
-            backend_operator.chmod.assert_called_with(504, "/theia/scratch/brussel/vo/000/bvo00003")
-            backend_operator.chown.assert_called_with(99, 2610008, "/theia/scratch/brussel/vo/000/bvo00003")
-            backend_operator.set_fileset_quota.assert_called_with(
-                102005473280, "/theia/scratch/brussel/vo/000/bvo00003", "bvo00003", 107374182400
-            )
-            backend_operator.set_fileset_grace.assert_called_with("/theia/scratch/brussel/vo/000/bvo00003", 604800)
-            backend_operator.create_stat_directory.assert_called_with(
-                "/theia/scratch/brussel/vo/000/bvo00003/vsc40002", 448, 2540002, 1, override_permissions=False
-            )
+                backend_operator.list_filesets.assert_called_with()
+                backend_operator.get_fileset_info.assert_called_with("theiascratch", "bvo00003")
+                backend_operator.chmod.assert_called_with(504, "/theia/scratch/brussel/vo/000/bvo00003")
+                backend_operator.chown.assert_called_with(99, 2610008, "/theia/scratch/brussel/vo/000/bvo00003")
+                backend_operator.set_fileset_quota.assert_called_with(
+                    102005473280, "/theia/scratch/brussel/vo/000/bvo00003", "bvo00003", 107374182400
+                )
+                backend_operator.set_fileset_grace.assert_called_with("/theia/scratch/brussel/vo/000/bvo00003", 604800)
+                backend_operator.create_stat_directory.assert_called_with(
+                    "/theia/scratch/brussel/vo/000/bvo00003/vsc40002", 448, 2540002, 1, override_permissions=False
+                )

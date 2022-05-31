@@ -543,10 +543,8 @@ class UserDeploymentTest(TestCase):
 
         test_accounts = [(test_account_1, GENT), (test_account_3, BRUSSEL)]
 
-        with mock.patch.object(config.Storage, 'load_operator') as mock_load_operator:
-            backend_operator = mock.MagicMock()
-            backend_operator_err = mock.MagicMock()
-            mock_load_operator.return_value = (backend_operator, backend_operator_err)
+        with mock.patch('vsc.administration.user.load_storage_operator') as mock_load_storage_operator:
+            mock_load_storage_operator.return_value = mock.MagicMock()
 
             for account, site in test_accounts:
                 test_account = mkVscAccount(account)
@@ -563,10 +561,8 @@ class UserDeploymentTest(TestCase):
 
         test_accounts = [(test_account_1, GENT), (test_account_3, BRUSSEL)]
 
-        with mock.patch.object(config.Storage, 'load_operator') as mock_load_operator:
-            backend_operator = mock.MagicMock()
-            backend_operator_err = mock.MagicMock()
-            mock_load_operator.return_value = (backend_operator, backend_operator_err)
+        with mock.patch('vsc.administration.user.load_storage_operator') as mock_load_storage_operator:
+            mock_load_storage_operator.return_value = mock.MagicMock()
 
             for account, site in test_accounts:
                 test_account = mkVscAccount(account)
@@ -583,10 +579,8 @@ class UserDeploymentTest(TestCase):
 
         test_accounts = [(test_account_1, GENT), (test_account_3, BRUSSEL)]
 
-        with mock.patch.object(config.Storage, 'load_operator') as mock_load_operator:
-            backend_operator = mock.MagicMock()
-            backend_operator_err = mock.MagicMock()
-            mock_load_operator.return_value = (backend_operator, backend_operator_err)
+        with mock.patch('vsc.administration.user.load_storage_operator') as mock_load_storage_operator:
+            mock_load_storage_operator.return_value = mock.MagicMock()
 
             for account, site in test_accounts:
                 test_account = mkVscAccount(account)

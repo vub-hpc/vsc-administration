@@ -36,6 +36,7 @@ from vsc.config.base import (
     NEW, MODIFIED, MODIFY, ACTIVE, HOME_KEY, DATA_KEY, SCRATCH_KEY,
     STORAGE_SHARED_SUFFIX,
 )
+from vsc.filesystem.operator import load_storage_operator
 from vsc.utils.py2vs3 import ensure_ascii_string
 
 # Cache for user instances
@@ -236,7 +237,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
 
         - creates the fileset if it does not already exist
         """
-        fs_backend = storage.load_operator()
+        fs_backend = load_storage_operator(storage)
 
         try:
             filesystem_name = storage.filesystem
@@ -323,7 +324,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         except KeyError:
             logging.exception("Trying to access non-existent institute storage: %s", storage_name)
         else:
-            fs_backend = storage.load_operator()
+            fs_backend = load_storage_operator(storage)
 
         try:
             (grouping_path, fileset) = grouping_f()
@@ -374,7 +375,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         except KeyError:
             logging.exception("Trying to access non-existent institute storage: %s", storage_name)
         else:
-            fs_backend = storage.load_operator()
+            fs_backend = load_storage_operator(storage)
 
         quota = hard * 1024
         if storage.backend == 'gpfs':
@@ -425,7 +426,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         except KeyError:
             logging.exception("Trying to access non-existent institute storage: %s", VSC_HOME)
         else:
-            fs_backend = storage.load_operator()
+            fs_backend = load_storage_operator(storage)
 
         path = self._home_path()
         fs_backend.populate_home_dir(
@@ -444,7 +445,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
 
         if name == 'dry_run':
             for filesystem in self.institute_storage:
-                fs_backend = self.institute_storage[filesystem].load_operator()
+                fs_backend = load_storage_operator(self.institute_storage[filesystem])
                 fs_backend.dry_run = value
 
         super(VscTier2AccountpageUser, self).__setattr__(name, value)
