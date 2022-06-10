@@ -474,7 +474,7 @@ class VoDeploymentTest(TestCase):
                     "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005", 604800
                 )
                 backend_operator.set_user_quota.assert_called_with(
-                    hard=53687091200, obj="/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005", soft=51002736640, user="vsc10001"
+                    soft=51002736640, user=2510001, obj="/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005", hard=53687091200
                 )
                 backend_operator.create_stat_directory.assert_called_with(
                     "/vscmnt/brussel_pixiu_data/_data_brussel/brussel/vo/000/bvo00005/vsc10001", 448, 2510001, 1, override_permissions=False

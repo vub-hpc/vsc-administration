@@ -399,12 +399,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             hard *= storage.data_replication_factor
         soft = int(hard * self.vsc.quota_soft_fraction)
 
-        if storage.backend == 'oceanstor':
-            # OceanStor accepts usernames
-            member_id = member.account.vsc_id
-        else:
-            # GPFS accepts UIDs
-            member_id = int(member.account.vsc_id_number)
+        member_id = int(member.account.vsc_id_number)
 
         try:
             fs_backend.set_user_quota(soft=soft, user=member_id, obj=path, hard=hard)

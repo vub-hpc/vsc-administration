@@ -385,8 +385,9 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         logging.info("Setting quota for %s - %s on %s to %d", self.account.vsc_id, storage_name, path, quota)
 
         # LDAP information is expressed in KiB, GPFS wants bytes.
-        fs_backend.set_user_quota(soft, int(self.account.vsc_id_number), path, quota)
-        fs_backend.set_user_grace(path, self.vsc.user_storage_grace_time)  # 7 days
+        user_id = int(self.account.vsc_id_number)
+        fs_backend.set_user_quota(soft, user_id, path, quota)
+        fs_backend.set_user_grace(path, self.vsc.user_storage_grace_time, who=user_id)  # 7 days
 
     def set_home_quota(self):
         """Set USR quota on the home FS in the user fileset."""
