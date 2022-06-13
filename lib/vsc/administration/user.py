@@ -249,11 +249,6 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         except AttributeError:
             logging.exception("Storage backend %s does not support listing filesets", storage.backend)
 
-        if storage.backend == 'oceanstor':
-            # OceanStor does not support filesets with a different name than its root folder
-            # Use name of root folder as fileset name
-            fileset_name = os.path.basename(path)
-
         logging.info("Trying to create the grouping fileset %s with link path %s", fileset_name, path)
 
         if not fs_backend.get_fileset_info(filesystem_name, fileset_name):
