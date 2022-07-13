@@ -405,8 +405,10 @@ def main():
 
     except Exception as err:
         logging.exception("critical exception caught: %s", err)
-        opts.critical("Script failed in a horrible way")
+        extopts.critical("Script failed in a horrible way")
         sys.exit(NAGIOS_EXIT_CRITICAL)
+
+    extopts.epilogue("external licenses sync complete", None)
 
 
 if __name__ == "__main__":
