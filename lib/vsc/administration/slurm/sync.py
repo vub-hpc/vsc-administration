@@ -265,7 +265,7 @@ def slurm_project_users_accounts(
 
         if remove_slurm_users:
             logging.warning(
-                "Number of slurm users not in projecs: %d > 0: %s", len(remove_slurm_users), remove_slurm_users
+                "Number of slurm users not in projects: %d > 0: %s", len(remove_slurm_users), remove_slurm_users
             )
 
         # create associations in the default account for users that do not already have one
