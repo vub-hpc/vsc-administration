@@ -204,6 +204,17 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         """
         return self._get_path(storage, mount_point)
 
+    def _get_storage_partition(self, storage_name):
+        """Seek and return storage partition from institute's storage"""
+        try:
+            storage = self.storage[self.host_institute][storage_name]
+        except KeyError:
+            err_msg = "Failed to access storage '%s' in the storage configuration of %s"
+            logging.exception(err_msg, storage_name, self.host_institute)
+            raise
+        else:
+            return storage
+
     def _create_fileset(self, storage, path, parent_fileset=None, fileset_name=None, group_owner_id=None):
         """Create a fileset for the VO on the data filesystem.
 
@@ -265,41 +276,26 @@ class VscTier2AccountpageVo(VscAccountPageVo):
     def create_data_fileset(self):
         """Create the VO's directory on the HPC data filesystem. Always set the quota."""
         path = self._data_path()
-        try:
-            storage = self.storage[self.host_institute][VSC_DATA]
-        except KeyError:
-            errmsg = "Failed to access field '%s' in the data storage configuration"
-            logging.exception(errmsg, VSC_DATA)
-            raise
-        else:
-            self._create_fileset(storage, path)
+        storage = self._get_storage_partition(VSC_DATA)
+
+        self._create_fileset(storage, path)
 
     def create_data_shared_fileset(self):
         """Create a VO directory for sharing data on the HPC data filesystem. Always set the quota."""
         path = self._data_shared_path()
-        try:
-            storage = self.storage[self.host_institute][VSC_DATA_SHARED]
-        except KeyError:
-            errmsg = "Failed to access field '%s' in the shared data storage configuration"
-            logging.exception(errmsg, VSC_DATA_SHARED)
-            raise
-        else:
-            self._create_fileset(
-                storage,
-                path,
-                fileset_name=self.sharing_group.vsc_id,
-                group_owner_id=self.sharing_group.vsc_id_number,
-            )
+        storage = self._get_storage_partition(VSC_DATA_SHARED)
+
+        self._create_fileset(
+            storage,
+            path,
+            fileset_name=self.sharing_group.vsc_id,
+            group_owner_id=self.sharing_group.vsc_id_number,
+        )
 
     def create_scratch_fileset(self, storage_name):
         """Create the VO's directory on the HPC data filesystem. Always set the quota."""
         path = self._scratch_path(storage_name)
-        try:
-            storage = self.storage[self.host_institute][storage_name]
-        except KeyError:
-            errmsg = "Failed to access field '%s' in the scratch storage configuration"
-            logging.exception(errmsg, storage_name)
-            raise
+        storage = self._get_storage_partition(storage_name)
 
         if storage.backend == 'gpfs':
             if storage.version >= (3, 5, 0, 0):
@@ -311,14 +307,8 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
     def _create_vo_dir(self, path, storage_name):
         """Create a user owned directory."""
-        try:
-            storage = self.storage[self.host_institute][storage_name]
-        except KeyError:
-            errmsg = "Failed to access field '%s' in the storage configuration"
-            logging.exception(errmsg, storage_name)
-            raise
-        else:
-            storage.operator().make_dir(path)
+        storage = self._get_storage_partition(storage_name)
+        storage.operator().make_dir(path)
 
     def _set_quota(self, storage_name, path, quota, fileset_name=None):
         """Set FILESET quota on the FS for the VO fileset.
@@ -328,11 +318,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         if not fileset_name:
             fileset_name = self.vo.vsc_id
 
-        try:
-            storage = self.storage[self.host_institute][storage_name]
-        except KeyError:
-            logging.exception("Failed to access storage configuration: %s", storage_name)
-            raise
+        storage = self._get_storage_partition(storage_name)
 
         # quota expressed in bytes, retrieved in KiB from the account backend
         hard, soft = quota_limits(quota * 1024, self.vsc.quota_soft_fraction, storage.data_replication_factor)
@@ -389,12 +375,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         @type member: VscTier2AccountpageUser
         @type quota: integer (hard value)
         """
-        try:
-            storage = self.storage[self.host_institute][storage_name]
-        except KeyError:
-            errmsg = "Failed to access field '%s' in the storage configuration"
-            logging.exception(errmsg, storage_name)
-            raise
+        storage = self._get_storage_partition(storage_name)
 
         # quota expressed in bytes, retrieved in KiB from the account backend
         hard, soft = quota_limits(quota * 1024, self.vsc.quota_soft_fraction, storage.data_replication_factor)
@@ -476,12 +457,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
     def _create_member_dir(self, member, target, storage_name):
         """Create a member-owned directory in the VO fileset."""
-        try:
-            storage = self.storage[self.host_institute][storage_name]
-        except KeyError:
-            errmsg = "Failed to access field '%s' in the storage configuration"
-            logging.exception(errmsg, storage_name)
-            raise
+        storage = self._get_storage_partition(storage_name)
 
         storage.operator().create_stat_directory(
             target,
