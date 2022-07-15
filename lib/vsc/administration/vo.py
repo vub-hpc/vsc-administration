@@ -297,13 +297,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         path = self._scratch_path(storage_name)
         storage = self._get_storage_partition(storage_name)
 
-        if storage.backend == 'gpfs':
-            if storage.version >= (3, 5, 0, 0):
-                self._create_fileset(storage, path)
-            else:
-                self._create_fileset(storage, path, 'root')
-        else:
-            self._create_fileset(storage, path)
+        self._create_fileset(storage, path)
 
     def _create_vo_dir(self, path, storage_name):
         """Create a user owned directory."""
