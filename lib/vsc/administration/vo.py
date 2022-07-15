@@ -401,7 +401,8 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         try:
             storage.operator().set_user_quota(soft=soft, user=member_id, obj=path, hard=hard)
         except storage.backend_operator_err:
-            logging.exception("Unable to set USR quota for member %s on path %s", member_id, path)
+            err_msg = "Unable to set %s quota for member %s on path %s"
+            logging.exception(err_msg, storage.operator().quota_types.USR.value, member_id, path)
             raise
 
     def set_member_data_quota(self, member):
