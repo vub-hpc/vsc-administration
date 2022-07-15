@@ -32,6 +32,7 @@ from vsc.utils.py2vs3 import HTTPError
 
 from vsc.accountpage.wrappers import mkVo, mkVscVoSizeQuota, mkVscAccount, mkVscAutogroup
 from vsc.administration.user import VscTier2AccountpageUser, UserStatusUpdateError
+from vsc.administration.tools import quota_limits
 from vsc.config.base import (
     VSC, VscStorage, VSC_HOME, VSC_DATA, VSC_DATA_SHARED, NEW, MODIFIED, MODIFY, ACTIVE,
     GENT, DATA_KEY, SCRATCH_KEY, DEFAULT_VOS_ALL, VSC_PRODUCTION_SCRATCH, INSTITUTE_VOS_BY_INSTITUTE,
@@ -326,12 +327,8 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         except KeyError:
             logging.exception("Trying to access non-existent storage: %s", storage_name)
 
-        # expressed in bytes, retrieved in KiB from the account backend
-        hard = quota * 1024
-        if storage.backend == 'gpfs':
-            hard *= storage.data_replication_factor
-
-        soft = int(hard * self.vsc.quota_soft_fraction)
+        # quota expressed in bytes, retrieved in KiB from the account backend
+        hard, soft = quota_limits(quota * 1024, self.vsc.quota_soft_fraction, storage.data_replication_factor)
 
         try:
             # LDAP information is expressed in KiB, GPFS wants bytes.
@@ -391,10 +388,8 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
 
-        hard = quota * 1024
-        if storage.backend == 'gpfs':
-            hard *= storage.data_replication_factor
-        soft = int(hard * self.vsc.quota_soft_fraction)
+        # quota expressed in bytes, retrieved in KiB from the account backend
+        hard, soft = quota_limits(quota * 1024, self.vsc.quota_soft_fraction, storage.data_replication_factor)
 
         member_id = int(member.account.vsc_id_number)
 

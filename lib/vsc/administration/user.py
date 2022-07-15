@@ -30,6 +30,7 @@ from vsc.utils.py2vs3 import HTTPError
 from vsc.accountpage.wrappers import mkVscAccountPubkey, mkVscHomeOnScratch
 from vsc.accountpage.wrappers import mkVscAccount, mkUserGroup
 from vsc.accountpage.wrappers import mkGroup, mkVscUserSizeQuota
+from vsc.administration.tools import quota_limits
 from vsc.config.base import (
     VSC, VscStorage, VSC_DATA, VSC_HOME, VSC_PRODUCTION_SCRATCH, BRUSSEL,
     GENT, VO_PREFIX_BY_INSTITUTE, VSC_SCRATCH_KYUKON, VSC_SCRATCH_THEIA,
@@ -355,13 +356,13 @@ class VscTier2AccountpageUser(VscAccountPageUser):
             lambda: self._scratch_path(storage_name),
             storage_name)
 
-    def _set_quota(self, storage_name, path, hard):
+    def _set_quota(self, storage_name, path, quota):
         """Set the given quota on the target path.
 
         @type path: path into a GPFS mount
-        @type hard: hard limit
+        @type quota: hard quota limit
         """
-        if not hard:
+        if not quota:
             logging.error("No user quota set for %s", storage_name)
             return
 
@@ -370,16 +371,14 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         except KeyError:
             logging.exception("Trying to access non-existent institute storage: %s", storage_name)
 
-        quota = hard * 1024
-        if storage.backend == 'gpfs':
-            quota *= storage.data_replication_factor
-        soft = int(self.vsc.quota_soft_fraction * quota)
+        # quota expressed in bytes, retrieved in KiB from the account backend
+        hard, soft = quota_limits(quota * 1024, self.vsc.quota_soft_fraction, storage.data_replication_factor)
 
-        logging.info("Setting quota for %s - %s on %s to %d", self.account.vsc_id, storage_name, path, quota)
+        logging.info("Setting quota for %s - %s on %s to %d", self.account.vsc_id, storage_name, path, hard)
 
         # LDAP information is expressed in KiB, GPFS wants bytes.
         user_id = int(self.account.vsc_id_number)
-        storage.operator().set_user_quota(soft, user_id, path, quota)
+        storage.operator().set_user_quota(soft, user_id, path, hard)
         storage.operator().set_user_grace(path, self.vsc.user_storage_grace_time, who=user_id)  # 7 days
 
     def set_home_quota(self):
