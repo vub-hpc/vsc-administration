@@ -454,12 +454,15 @@ class VscTier2AccountpageUserTest(TestCase):
             test_account = mkVscAccount(account)
             mock_client.account[test_account.vsc_id].quota.get.return_value = (200, quota)
 
-            return user.VscTier2AccountpageUser(
-                test_account.vsc_id,
-                storage=config.VscStorage(),
-                rest_client=mock_client,
-                account=test_account,
-                host_institute=site)
+            with mock.patch('vsc.administration.user.StorageOperator') as mock_storage_operator:
+                mock_storage_operator.return_value = mock.MagicMock()
+
+                return user.VscTier2AccountpageUser(
+                    test_account.vsc_id,
+                    storage=config.VscStorage(),
+                    rest_client=mock_client,
+                    account=test_account,
+                    host_institute=site)
 
         for account, quota, site, fileset in tests:
             accountpageuser = set_up_accountpageuser(account, quota, site)
@@ -543,8 +546,8 @@ class UserDeploymentTest(TestCase):
 
         test_accounts = [(test_account_1, GENT), (test_account_3, BRUSSEL)]
 
-        with mock.patch('vsc.administration.user.load_storage_operator') as mock_load_storage_operator:
-            mock_load_storage_operator.return_value = mock.MagicMock()
+        with mock.patch('vsc.administration.user.StorageOperator') as mock_storage_operator:
+            mock_storage_operator.return_value = mock.MagicMock()
 
             for account, site in test_accounts:
                 test_account = mkVscAccount(account)
@@ -561,8 +564,8 @@ class UserDeploymentTest(TestCase):
 
         test_accounts = [(test_account_1, GENT), (test_account_3, BRUSSEL)]
 
-        with mock.patch('vsc.administration.user.load_storage_operator') as mock_load_storage_operator:
-            mock_load_storage_operator.return_value = mock.MagicMock()
+        with mock.patch('vsc.administration.user.StorageOperator') as mock_storage_operator:
+            mock_storage_operator.return_value = mock.MagicMock()
 
             for account, site in test_accounts:
                 test_account = mkVscAccount(account)
@@ -579,8 +582,8 @@ class UserDeploymentTest(TestCase):
 
         test_accounts = [(test_account_1, GENT), (test_account_3, BRUSSEL)]
 
-        with mock.patch('vsc.administration.user.load_storage_operator') as mock_load_storage_operator:
-            mock_load_storage_operator.return_value = mock.MagicMock()
+        with mock.patch('vsc.administration.user.StorageOperator') as mock_storage_operator:
+            mock_storage_operator.return_value = mock.MagicMock()
 
             for account, site in test_accounts:
                 test_account = mkVscAccount(account)

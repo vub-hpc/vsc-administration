@@ -37,7 +37,7 @@ from vsc.config.base import (
     GENT, DATA_KEY, SCRATCH_KEY, DEFAULT_VOS_ALL, VSC_PRODUCTION_SCRATCH, INSTITUTE_VOS_BY_INSTITUTE,
     VO_SHARED_PREFIX_BY_INSTITUTE, VO_PREFIX_BY_INSTITUTE, STORAGE_SHARED_SUFFIX
 )
-from vsc.filesystem.operator import load_storage_operator
+from vsc.filesystem.operator import StorageOperator
 from vsc.utils.missing import Monoid, MonoidDict
 
 
@@ -91,6 +91,10 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             self.storage = VscStorage()
         else:
             self.storage = storage
+
+        # Initialze the corresponding operator for each storage backend
+        for fs in self.storage[self.host_institute]:
+            self.storage[self.host_institute][fs].operator = StorageOperator(self.storage[self.host_institute][fs])
 
         self.dry_run = False
 
@@ -209,15 +213,13 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         The parent_fileset is used to support older (< 3.5.x) GPFS setups still present in our system
         """
-        fs_backend = load_storage_operator(storage)
-
         try:
             filesystem_name = storage.filesystem
         except AttributeError:
             logging.exception("Trying to access non-existent attribute 'filesystem' in the data storage instance")
 
         try:
-            fs_backend.list_filesets()
+            storage.operator().list_filesets()
         except AttributeError:
             logging.exception("Storage backend %s does not support listing filesets", storage.backend)
 
@@ -229,33 +231,33 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         else:
             fileset_group_owner_id = self.vo.vsc_id_number
 
-        if not fs_backend.get_fileset_info(filesystem_name, fileset_name):
+        if not storage.operator().get_fileset_info(filesystem_name, fileset_name):
             logging.info("Creating new fileset on %s with name %s and path %s",
                          filesystem_name, fileset_name, path)
             base_dir_hierarchy = os.path.dirname(path)
-            fs_backend.make_dir(base_dir_hierarchy)
+            storage.operator().make_dir(base_dir_hierarchy)
 
             # HACK to support versions older than 3.5 in our setup
             if parent_fileset is None:
-                fs_backend.make_fileset(path, fileset_name)
+                storage.operator().make_fileset(path, fileset_name)
             else:
-                fs_backend.make_fileset(path, fileset_name, parent_fileset)
+                storage.operator().make_fileset(path, fileset_name, parent_fileset)
         else:
             logging.info("Fileset %s already exists for VO %s ... not creating again.",
                          fileset_name, self.vo.vsc_id)
 
-        fs_backend.chmod(0o770, path)
+        storage.operator().chmod(0o770, path)
 
         try:
             moderator = mkVscAccount(self.rest_client.account[self.vo.moderators[0]].get()[1])
         except HTTPError:
             logging.exception("Cannot obtain moderator information from account page, setting ownership to nobody")
-            fs_backend.chown(pwd.getpwnam('nobody').pw_uid, fileset_group_owner_id, path)
+            storage.operator().chown(pwd.getpwnam('nobody').pw_uid, fileset_group_owner_id, path)
         except IndexError:
             logging.error("There is no moderator available for VO %s", self.vo.vsc_id)
-            fs_backend.chown(pwd.getpwnam('nobody').pw_uid, fileset_group_owner_id, path)
+            storage.operator().chown(pwd.getpwnam('nobody').pw_uid, fileset_group_owner_id, path)
         else:
-            fs_backend.chown(moderator.vsc_id_number, fileset_group_owner_id, path)
+            storage.operator().chown(moderator.vsc_id_number, fileset_group_owner_id, path)
 
     def create_data_fileset(self):
         """Create the VO's directory on the HPC data filesystem. Always set the quota."""
@@ -309,8 +311,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
         else:
-            fs_backend = load_storage_operator(storage)
-            fs_backend.make_dir(path)
+            storage.operator().make_dir(path)
 
     def _set_quota(self, storage_name, path, quota, fileset_name=None):
         """Set FILESET quota on the FS for the VO fileset.
@@ -324,8 +325,6 @@ class VscTier2AccountpageVo(VscAccountPageVo):
             storage = self.storage[self.host_institute][storage_name]
         except KeyError:
             logging.exception("Trying to access non-existent storage: %s", storage_name)
-        else:
-            fs_backend = load_storage_operator(storage)
 
         # expressed in bytes, retrieved in KiB from the account backend
         hard = quota * 1024
@@ -336,8 +335,8 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         try:
             # LDAP information is expressed in KiB, GPFS wants bytes.
-            fs_backend.set_fileset_quota(soft, path, fileset_name, hard)
-            fs_backend.set_fileset_grace(path, self.vsc.vo_storage_grace_time)  # 7 days
+            storage.operator().set_fileset_quota(soft, path, fileset_name, hard)
+            storage.operator().set_fileset_grace(path, self.vsc.vo_storage_grace_time)  # 7 days
         except storage.backend_operator_err:
             logging.exception("Unable to set quota on path %s", path)
             raise
@@ -391,8 +390,6 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         except KeyError:
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
-        else:
-            fs_backend = load_storage_operator(storage)
 
         hard = quota * 1024
         if storage.backend == 'gpfs':
@@ -402,7 +399,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         member_id = int(member.account.vsc_id_number)
 
         try:
-            fs_backend.set_user_quota(soft=soft, user=member_id, obj=path, hard=hard)
+            storage.operator().set_user_quota(soft=soft, user=member_id, obj=path, hard=hard)
         except storage.backend_operator_err:
             logging.exception("Unable to set USR quota for member %s on path %s", member_id, path)
             raise
@@ -480,10 +477,8 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         except KeyError:
             errmsg = "Trying to access non-existent field %s in the storage dictionary"
             logging.exception(errmsg, storage_name)
-        else:
-            fs_backend = load_storage_operator(storage)
 
-        fs_backend.create_stat_directory(
+        storage.operator().create_stat_directory(
             target,
             0o700,
             int(member.account.vsc_id_number),
@@ -513,8 +508,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         if name == 'dry_run':
             for filesystem in self.storage[self.host_institute]:
-                fs_backend = load_storage_operator(self.storage[self.host_institute][filesystem])
-                fs_backend.dry_run = value
+                self.storage[self.host_institute][filesystem].operator().dry_run = value
 
         super(VscTier2AccountpageVo, self).__setattr__(name, value)
 

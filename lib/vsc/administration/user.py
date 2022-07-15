@@ -36,7 +36,7 @@ from vsc.config.base import (
     NEW, MODIFIED, MODIFY, ACTIVE, HOME_KEY, DATA_KEY, SCRATCH_KEY,
     STORAGE_SHARED_SUFFIX,
 )
-from vsc.filesystem.operator import load_storage_operator
+from vsc.filesystem.operator import StorageOperator
 from vsc.utils.py2vs3 import ensure_ascii_string
 
 # Cache for user instances
@@ -151,6 +151,10 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         if storage is None:
             storage = VscStorage()
 
+        # Initialze the corresponding operator for each storage backend
+        for fs in storage[self.host_institute]:
+            storage[self.host_institute][fs].operator = StorageOperator(storage[self.host_institute][fs])
+
         self.institute_path_templates = storage.path_templates[self.host_institute]
         self.institute_storage = storage[self.host_institute]
 
@@ -237,30 +241,28 @@ class VscTier2AccountpageUser(VscAccountPageUser):
 
         - creates the fileset if it does not already exist
         """
-        fs_backend = load_storage_operator(storage)
-
         try:
             filesystem_name = storage.filesystem
         except AttributeError:
             logging.exception("Trying to access non-existent attribute 'filesystem' in the data storage instance")
 
         try:
-            fs_backend.list_filesets()
+            storage.operator().list_filesets()
         except AttributeError:
             logging.exception("Storage backend %s does not support listing filesets", storage.backend)
 
         logging.info("Trying to create the grouping fileset %s with link path %s", fileset_name, path)
 
-        if not fs_backend.get_fileset_info(filesystem_name, fileset_name):
+        if not storage.operator().get_fileset_info(filesystem_name, fileset_name):
             logging.info("Creating new fileset on %s with name %s and path %s", filesystem_name, fileset_name, path)
             base_dir_hierarchy = os.path.dirname(path)
-            fs_backend.make_dir(base_dir_hierarchy)
-            fs_backend.make_fileset(path, fileset_name)
+            storage.operator().make_dir(base_dir_hierarchy)
+            storage.operator().make_fileset(path, fileset_name)
         else:
             logging.info("Fileset %s already exists for user group of %s ... not creating again.",
                          fileset_name, self.account.vsc_id)
 
-        fs_backend.chmod(0o755, path)
+        storage.operator().chmod(0o755, path)
 
     def _get_mount_path(self, storage_name, mount_point):
         """Get the mount point for the location we're running"""
@@ -318,19 +320,17 @@ class VscTier2AccountpageUser(VscAccountPageUser):
             storage = self.institute_storage[storage_name]
         except KeyError:
             logging.exception("Trying to access non-existent institute storage: %s", storage_name)
-        else:
-            fs_backend = load_storage_operator(storage)
 
         try:
             (grouping_path, fileset) = grouping_f()
             self._create_grouping_fileset(storage, grouping_path, fileset)
 
             path = path_f()
-            if fs_backend.is_symlink(path):
+            if storage.operator().is_symlink(path):
                 logging.warning("Trying to make a user dir, but a symlink already exists at %s", path)
                 return
 
-            fs_backend.create_stat_directory(
+            storage.operator().create_stat_directory(
                 path,
                 0o700,
                 int(self.account.vsc_id_number),
@@ -369,8 +369,6 @@ class VscTier2AccountpageUser(VscAccountPageUser):
             storage = self.institute_storage[storage_name]
         except KeyError:
             logging.exception("Trying to access non-existent institute storage: %s", storage_name)
-        else:
-            fs_backend = load_storage_operator(storage)
 
         quota = hard * 1024
         if storage.backend == 'gpfs':
@@ -381,8 +379,8 @@ class VscTier2AccountpageUser(VscAccountPageUser):
 
         # LDAP information is expressed in KiB, GPFS wants bytes.
         user_id = int(self.account.vsc_id_number)
-        fs_backend.set_user_quota(soft, user_id, path, quota)
-        fs_backend.set_user_grace(path, self.vsc.user_storage_grace_time, who=user_id)  # 7 days
+        storage.operator().set_user_quota(soft, user_id, path, quota)
+        storage.operator().set_user_grace(path, self.vsc.user_storage_grace_time, who=user_id)  # 7 days
 
     def set_home_quota(self):
         """Set USR quota on the home FS in the user fileset."""
@@ -421,11 +419,9 @@ class VscTier2AccountpageUser(VscAccountPageUser):
             storage = self.institute_storage[VSC_HOME]
         except KeyError:
             logging.exception("Trying to access non-existent institute storage: %s", VSC_HOME)
-        else:
-            fs_backend = load_storage_operator(storage)
 
         path = self._home_path()
-        fs_backend.populate_home_dir(
+        storage.operator().populate_home_dir(
             int(self.account.vsc_id_number),
             int(self.usergroup.vsc_id_number),
             path,
@@ -441,8 +437,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
 
         if name == 'dry_run':
             for filesystem in self.institute_storage:
-                fs_backend = load_storage_operator(self.institute_storage[filesystem])
-                fs_backend.dry_run = value
+                self.institute_storage[filesystem].operator().dry_run = value
 
         super(VscTier2AccountpageUser, self).__setattr__(name, value)
 
