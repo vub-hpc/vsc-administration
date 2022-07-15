@@ -245,12 +245,14 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         try:
             filesystem_name = storage.filesystem
         except AttributeError:
-            logging.exception("Trying to access non-existent attribute 'filesystem' in the data storage instance")
+            logging.exception("Failed to access attribute 'filesystem' in the data storage instance")
+            raise
 
         try:
             storage.operator().list_filesets()
         except AttributeError:
             logging.exception("Storage backend %s does not support listing filesets", storage.backend)
+            raise
 
         logging.info("Trying to create the grouping fileset %s with link path %s", fileset_name, path)
 
@@ -320,7 +322,8 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         try:
             storage = self.institute_storage[storage_name]
         except KeyError:
-            logging.exception("Trying to access non-existent institute storage: %s", storage_name)
+            logging.exception("Failed to access institute storage configuration: %s", storage_name)
+            raise
 
         try:
             (grouping_path, fileset) = grouping_f()
@@ -369,7 +372,8 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         try:
             storage = self.institute_storage[storage_name]
         except KeyError:
-            logging.exception("Trying to access non-existent institute storage: %s", storage_name)
+            logging.exception("Failed to access institute storage configuration: %s", storage_name)
+            raise
 
         # quota expressed in bytes, retrieved in KiB from the account backend
         hard, soft = quota_limits(quota * 1024, self.vsc.quota_soft_fraction, storage.data_replication_factor)
@@ -417,7 +421,8 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         try:
             storage = self.institute_storage[VSC_HOME]
         except KeyError:
-            logging.exception("Trying to access non-existent institute storage: %s", VSC_HOME)
+            logging.exception("Failed to access institute storage configuration: %s", VSC_HOME)
+            raise
 
         path = self._home_path()
         storage.operator().populate_home_dir(

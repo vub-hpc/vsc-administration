@@ -217,12 +217,14 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         try:
             filesystem_name = storage.filesystem
         except AttributeError:
-            logging.exception("Trying to access non-existent attribute 'filesystem' in the data storage instance")
+            logging.exception("Failed to access attribute 'filesystem' in the data storage instance")
+            raise
 
         try:
             storage.operator().list_filesets()
         except AttributeError:
             logging.exception("Storage backend %s does not support listing filesets", storage.backend)
+            raise
 
         if not fileset_name:
             fileset_name = self.vo.vsc_id
@@ -266,8 +268,9 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         try:
             storage = self.storage[self.host_institute][VSC_DATA]
         except KeyError:
-            errmsg = "Trying to access non-existent field %s in the data storage dictionary"
+            errmsg = "Failed to access field '%s' in the data storage configuration"
             logging.exception(errmsg, VSC_DATA)
+            raise
         else:
             self._create_fileset(storage, path)
 
@@ -277,8 +280,9 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         try:
             storage = self.storage[self.host_institute][VSC_DATA_SHARED]
         except KeyError:
-            errmsg = "Trying to access non-existent field %s in the shared data storage dictionary"
+            errmsg = "Failed to access field '%s' in the shared data storage configuration"
             logging.exception(errmsg, VSC_DATA_SHARED)
+            raise
         else:
             self._create_fileset(
                 storage,
@@ -293,8 +297,9 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         try:
             storage = self.storage[self.host_institute][storage_name]
         except KeyError:
-            errmsg = "Trying to access non-existent field %s in the scratch storage dictionary"
+            errmsg = "Failed to access field '%s' in the scratch storage configuration"
             logging.exception(errmsg, storage_name)
+            raise
 
         if storage.backend == 'gpfs':
             if storage.version >= (3, 5, 0, 0):
@@ -309,8 +314,9 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         try:
             storage = self.storage[self.host_institute][storage_name]
         except KeyError:
-            errmsg = "Trying to access non-existent field %s in the storage dictionary"
+            errmsg = "Failed to access field '%s' in the storage configuration"
             logging.exception(errmsg, storage_name)
+            raise
         else:
             storage.operator().make_dir(path)
 
@@ -325,7 +331,8 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         try:
             storage = self.storage[self.host_institute][storage_name]
         except KeyError:
-            logging.exception("Trying to access non-existent storage: %s", storage_name)
+            logging.exception("Failed to access storage configuration: %s", storage_name)
+            raise
 
         # quota expressed in bytes, retrieved in KiB from the account backend
         hard, soft = quota_limits(quota * 1024, self.vsc.quota_soft_fraction, storage.data_replication_factor)
@@ -385,8 +392,9 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         try:
             storage = self.storage[self.host_institute][storage_name]
         except KeyError:
-            errmsg = "Trying to access non-existent field %s in the storage dictionary"
+            errmsg = "Failed to access field '%s' in the storage configuration"
             logging.exception(errmsg, storage_name)
+            raise
 
         # quota expressed in bytes, retrieved in KiB from the account backend
         hard, soft = quota_limits(quota * 1024, self.vsc.quota_soft_fraction, storage.data_replication_factor)
@@ -471,8 +479,9 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         try:
             storage = self.storage[self.host_institute][storage_name]
         except KeyError:
-            errmsg = "Trying to access non-existent field %s in the storage dictionary"
+            errmsg = "Failed to access field '%s' in the storage configuration"
             logging.exception(errmsg, storage_name)
+            raise
 
         storage.operator().create_stat_directory(
             target,
