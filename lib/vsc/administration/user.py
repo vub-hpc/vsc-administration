@@ -30,14 +30,12 @@ from vsc.utils.py2vs3 import HTTPError
 from vsc.accountpage.wrappers import mkVscAccountPubkey, mkVscHomeOnScratch
 from vsc.accountpage.wrappers import mkVscAccount, mkUserGroup
 from vsc.accountpage.wrappers import mkGroup, mkVscUserSizeQuota
+from vsc.administration.base import VscTier2Accountpage, MOUNT_POINT_DEFAULT
 from vsc.administration.tools import quota_limits
 from vsc.config.base import (
-    VSC, VscStorage, VSC_DATA, VSC_HOME, VSC_PRODUCTION_SCRATCH, BRUSSEL,
-    GENT, VO_PREFIX_BY_INSTITUTE, VSC_SCRATCH_KYUKON, VSC_SCRATCH_THEIA,
-    NEW, MODIFIED, MODIFY, ACTIVE, HOME_KEY, DATA_KEY, SCRATCH_KEY,
-    STORAGE_SHARED_SUFFIX,
+    VSC, VSC_DATA, VSC_HOME, VSC_PRODUCTION_SCRATCH, BRUSSEL, GENT, VO_PREFIX_BY_INSTITUTE, VSC_SCRATCH_KYUKON,
+    VSC_SCRATCH_THEIA, NEW, MODIFIED, MODIFY, ACTIVE, HOME_KEY, DATA_KEY, SCRATCH_KEY, STORAGE_SHARED_SUFFIX,
 )
-from vsc.filesystem.operator import StorageOperator
 from vsc.utils.py2vs3 import ensure_ascii_string
 
 # Cache for user instances
@@ -123,7 +121,7 @@ class VscAccountPageUser(object):
         return self.person.institute['name'][0]
 
 
-class VscTier2AccountpageUser(VscAccountPageUser):
+class VscTier2AccountpageUser(VscAccountPageUser, VscTier2Accountpage):
     """
     A user on each of our Tier-2 system using the account page REST API
     to retrieve its information.
@@ -134,8 +132,10 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         Initialisation.
         @type vsc_user_id: string representing the user's VSC ID (vsc[0-9]{5})
         """
-        super(VscTier2AccountpageUser, self).__init__(user_id, rest_client, account=account,
-                                                      pubkeys=pubkeys, use_user_cache=use_user_cache)
+        VscTier2Accountpage.__init__(self, storage=storage, host_institute=host_institute)
+        VscAccountPageUser.__init__(
+            self, user_id, rest_client, account=account, pubkeys=pubkeys, use_user_cache=use_user_cache
+        )
 
         # Move to vsc-config?
         default_pickle_storage = {
@@ -143,21 +143,12 @@ class VscTier2AccountpageUser(VscAccountPageUser):
             BRUSSEL: VSC_SCRATCH_THEIA,
         }
 
-        self.host_institute = host_institute
-
         if pickle_storage is None:
             pickle_storage = default_pickle_storage[host_institute]
 
         self.pickle_storage = pickle_storage
-        if storage is None:
-            storage = VscStorage()
 
-        # Initialze the corresponding operator for each storage backend
-        for fs in storage[self.host_institute]:
-            storage[self.host_institute][fs].operator = StorageOperator(storage[self.host_institute][fs])
-
-        self.institute_path_templates = storage.path_templates[self.host_institute]
-        self.institute_storage = storage[self.host_institute]
+        self.institute_path_templates = self.storage.path_templates[self.host_institute]
 
         self.vsc = VSC()
 
@@ -242,88 +233,17 @@ class VscTier2AccountpageUser(VscAccountPageUser):
 
         - creates the fileset if it does not already exist
         """
-        try:
-            filesystem_name = storage.filesystem
-        except AttributeError:
-            errmsg = "Failed to access attribute 'filesystem' in the storage configuration of fileset %s"
-            logging.exception(errmsg, fileset_name)
-            raise
+        self._create_fileset(storage, path, fileset_name)
 
-        try:
-            storage.operator().list_filesets()
-        except AttributeError:
-            logging.exception("Storage backend %s does not support listing filesets", storage.backend)
-            raise
-
-        logging.info("Trying to create the grouping fileset %s with link path %s", fileset_name, path)
-
-        if not storage.operator().get_fileset_info(filesystem_name, fileset_name):
-            logging.info("Creating new fileset on %s with name %s and path %s", filesystem_name, fileset_name, path)
-            base_dir_hierarchy = os.path.dirname(path)
-            storage.operator().make_dir(base_dir_hierarchy)
-            storage.operator().make_fileset(path, fileset_name)
-        else:
-            logging.info("Fileset %s already exists for user group of %s ... not creating again.",
-                         fileset_name, self.account.vsc_id)
-
-        storage.operator().chmod(0o755, path)
-
-    def _get_storage(self, storage_name):
-        """Seek and return storage settings from institute's storage"""
-        try:
-            storage = self.institute_storage[storage_name]
-        except KeyError:
-            err_msg = "Failed to access storage '%s' in the storage configuration of %s"
-            logging.exception(err_msg, storage_name, self.host_institute)
-            raise
-        else:
-            return storage
-
-    def _get_mount_path(self, storage_name, mount_point):
-        """Get the mount point for the location we're running"""
-        if mount_point == "login":
-            mount_path = self.institute_storage[storage_name].login_mount_point
-        elif mount_point == "backend":
-            mount_path = self.institute_storage[storage_name].backend_mount_point
-        else:
-            logging.error("mount_point (%s) is not login or backend", mount_point)
-            raise Exception("mount_point (%s) is not designated as backend or login" % (mount_point,))
-
-        return mount_path
-
-    def _get_path(self, storage_name, mount_point="backend"):
+    def _get_path(self, storage_name, mount_point=MOUNT_POINT_DEFAULT):
         """Get the path for the (if any) user directory on the given storage_name."""
         (path, _) = self.institute_path_templates[storage_name]['user'](self.account.vsc_id)
         return os.path.join(self._get_mount_path(storage_name, mount_point), path)
 
-    def _get_grouping_path(self, storage_name, mount_point="backend"):
+    def _get_grouping_path(self, storage_name, mount_point=MOUNT_POINT_DEFAULT):
         """Get the path and the fileset for the user group directory (and associated fileset)."""
         (path, fileset) = self.institute_path_templates[storage_name]['user'](self.account.vsc_id)
         return (os.path.join(self._get_mount_path(storage_name, mount_point), os.path.dirname(path)), fileset)
-
-    def _home_path(self, mount_point="backend"):
-        """Return the path to the home dir."""
-        return self._get_path(VSC_HOME, mount_point)
-
-    def _data_path(self, mount_point="backend"):
-        """Return the path to the data dir."""
-        return self._get_path(VSC_DATA, mount_point)
-
-    def _scratch_path(self, storage_name, mount_point="backend"):
-        """Return the path to the scratch dir"""
-        return self._get_path(storage_name, mount_point)
-
-    def _grouping_home_path(self, mount_point="backend"):
-        """Return the path to the grouping fileset for the users on data."""
-        return self._get_grouping_path(VSC_HOME, mount_point)
-
-    def _grouping_data_path(self, mount_point="backend"):
-        """Return the path to the grouping fileset for the users on data."""
-        return self._get_grouping_path(VSC_DATA, mount_point)
-
-    def _grouping_scratch_path(self, storage_name, mount_point="backend"):
-        """Return the path to the grouping fileset for the users on the given scratch filesystem."""
-        return self._get_grouping_path(storage_name, mount_point)
 
     def _create_user_dir(self, grouping_f, path_f, storage_name):
         """Create the directories and files for some user location.

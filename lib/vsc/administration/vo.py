@@ -32,13 +32,13 @@ from vsc.utils.py2vs3 import HTTPError
 
 from vsc.accountpage.wrappers import mkVo, mkVscVoSizeQuota, mkVscAccount, mkVscAutogroup
 from vsc.administration.user import VscTier2AccountpageUser, UserStatusUpdateError
+from vsc.administration.base import VscTier2Accountpage, MOUNT_POINT_DEFAULT
 from vsc.administration.tools import quota_limits
 from vsc.config.base import (
-    VSC, VscStorage, VSC_HOME, VSC_DATA, VSC_DATA_SHARED, NEW, MODIFIED, MODIFY, ACTIVE,
-    GENT, DATA_KEY, SCRATCH_KEY, DEFAULT_VOS_ALL, VSC_PRODUCTION_SCRATCH, INSTITUTE_VOS_BY_INSTITUTE,
-    VO_SHARED_PREFIX_BY_INSTITUTE, VO_PREFIX_BY_INSTITUTE, STORAGE_SHARED_SUFFIX
+    VSC, VSC_HOME, VSC_DATA, VSC_DATA_SHARED, NEW, MODIFIED, MODIFY, ACTIVE, GENT, DATA_KEY, SCRATCH_KEY,
+    DEFAULT_VOS_ALL, VSC_PRODUCTION_SCRATCH, INSTITUTE_VOS_BY_INSTITUTE, VO_SHARED_PREFIX_BY_INSTITUTE,
+    VO_PREFIX_BY_INSTITUTE, STORAGE_SHARED_SUFFIX
 )
-from vsc.filesystem.operator import StorageOperator
 from vsc.utils.missing import Monoid, MonoidDict
 
 
@@ -74,7 +74,7 @@ class VscAccountPageVo(object):
         return self._vo_cache
 
 
-class VscTier2AccountpageVo(VscAccountPageVo):
+class VscTier2AccountpageVo(VscAccountPageVo, VscTier2Accountpage):
     """Class representing a VO in the VSC.
 
     A VO is a special kind of group, identified mainly by its name.
@@ -82,20 +82,10 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
     def __init__(self, vo_id, storage=None, rest_client=None, host_institute=GENT):
         """Initialise"""
-        super(VscTier2AccountpageVo, self).__init__(vo_id, rest_client)
+        VscTier2Accountpage.__init__(self, storage=storage, host_institute=host_institute)
+        VscAccountPageVo.__init__(self, vo_id, rest_client)
 
-        self.vo_id = vo_id
         self.vsc = VSC()
-        self.host_institute = host_institute
-
-        if not storage:
-            self.storage = VscStorage()
-        else:
-            self.storage = storage
-
-        # Initialze the corresponding operator for each storage backend
-        for fs in self.storage[self.host_institute]:
-            self.storage[self.host_institute][fs].operator = StorageOperator(self.storage[self.host_institute][fs])
 
         self.dry_run = False
 
@@ -170,52 +160,17 @@ class VscTier2AccountpageVo(VscAccountPageVo):
     def data_sharing(self):
         return self.vo_data_shared_quota is not None
 
+    @property
     def members(self):
         """Return a list with all the VO members in it."""
         return self.vo.members
 
-    def _get_path(self, storage, mount_point="backend"):
+    def _get_path(self, storage_name, mount_point=MOUNT_POINT_DEFAULT):
         """Get the path for the (if any) user directory on the given storage."""
+        (path, _) = self.storage.path_templates[self.host_institute][storage_name]['vo'](self.vo.vsc_id)
+        return os.path.join(self._get_mount_path(storage_name, mount_point), path)
 
-        (path, _) = self.storage.path_templates[self.host_institute][storage]['vo'](self.vo.vsc_id)
-        if mount_point == "login":
-            mount_path = self.storage[self.host_institute][storage].login_mount_point
-        elif mount_point == "backend":
-            mount_path = self.storage[self.host_institute][storage].backend_mount_point
-        else:
-            logging.error("mount_point (%s)is not login or backend", mount_point)
-            raise Exception()
-
-        return os.path.join(mount_path, path)
-
-    def _data_path(self, mount_point="backend"):
-        """Return the path to the VO data fileset on GPFS"""
-        return self._get_path(VSC_DATA, mount_point)
-
-    def _data_shared_path(self, mount_point="backend"):
-        """Return the path the VO shared data fileset on GPFS"""
-        return self._get_path(VSC_DATA_SHARED, mount_point)
-
-    def _scratch_path(self, storage, mount_point="backend"):
-        """Return the path to the VO scratch fileset on GPFS.
-
-        @type storage: string
-        @param storage: name of the storage we are looking at.
-        """
-        return self._get_path(storage, mount_point)
-
-    def _get_storage(self, storage_name):
-        """Seek and return storage settings from institute's storage"""
-        try:
-            storage = self.storage[self.host_institute][storage_name]
-        except KeyError:
-            err_msg = "Failed to access storage '%s' in the storage configuration of %s"
-            logging.exception(err_msg, storage_name, self.host_institute)
-            raise
-        else:
-            return storage
-
-    def _create_fileset(self, storage, path, parent_fileset=None, fileset_name=None, group_owner_id=None):
+    def _create_vo_fileset(self, storage, path, parent_fileset=None, fileset_name=None, group_owner_id=None):
         """Create a fileset for the VO on the data filesystem.
 
         - creates the fileset if it does not already exist
@@ -225,18 +180,6 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
         The parent_fileset is used to support older (< 3.5.x) GPFS setups still present in our system
         """
-        try:
-            filesystem_name = storage.filesystem
-        except AttributeError:
-            logging.exception("Failed to access attribute 'filesystem' in the data storage instance")
-            raise
-
-        try:
-            storage.operator().list_filesets()
-        except AttributeError:
-            logging.exception("Storage backend %s does not support listing filesets", storage.backend)
-            raise
-
         if not fileset_name:
             fileset_name = self.vo.vsc_id
 
@@ -245,22 +188,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         else:
             fileset_group_owner_id = self.vo.vsc_id_number
 
-        if not storage.operator().get_fileset_info(filesystem_name, fileset_name):
-            logging.info("Creating new fileset on %s with name %s and path %s",
-                         filesystem_name, fileset_name, path)
-            base_dir_hierarchy = os.path.dirname(path)
-            storage.operator().make_dir(base_dir_hierarchy)
-
-            # HACK to support versions older than 3.5 in our setup
-            if parent_fileset is None:
-                storage.operator().make_fileset(path, fileset_name)
-            else:
-                storage.operator().make_fileset(path, fileset_name, parent_fileset)
-        else:
-            logging.info("Fileset %s already exists for VO %s ... not creating again.",
-                         fileset_name, self.vo.vsc_id)
-
-        storage.operator().chmod(0o770, path)
+        self._create_fileset(storage, path, fileset_name, parent_fileset=parent_fileset, mod='770')
 
         try:
             moderator = mkVscAccount(self.rest_client.account[self.vo.moderators[0]].get()[1])
@@ -278,14 +206,14 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         path = self._data_path()
         storage = self._get_storage(VSC_DATA)
 
-        self._create_fileset(storage, path)
+        self._create_vo_fileset(storage, path)
 
     def create_data_shared_fileset(self):
         """Create a VO directory for sharing data on the HPC data filesystem. Always set the quota."""
         path = self._data_shared_path()
         storage = self._get_storage(VSC_DATA_SHARED)
 
-        self._create_fileset(
+        self._create_vo_fileset(
             storage,
             path,
             fileset_name=self.sharing_group.vsc_id,
@@ -297,7 +225,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         path = self._scratch_path(storage_name)
         storage = self._get_storage(storage_name)
 
-        self._create_fileset(storage, path)
+        self._create_vo_fileset(storage, path)
 
     def _create_vo_dir(self, path, storage_name):
         """Create a user owned directory."""

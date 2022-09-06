@@ -454,7 +454,7 @@ class VscTier2AccountpageUserTest(TestCase):
             test_account = mkVscAccount(account)
             mock_client.account[test_account.vsc_id].quota.get.return_value = (200, quota)
 
-            with mock.patch('vsc.administration.user.StorageOperator') as mock_storage_operator:
+            with mock.patch('vsc.administration.base.StorageOperator') as mock_storage_operator:
                 mock_storage_operator.return_value = mock.MagicMock()
 
                 return user.VscTier2AccountpageUser(
@@ -546,7 +546,7 @@ class UserDeploymentTest(TestCase):
 
         test_accounts = [(test_account_1, GENT), (test_account_3, BRUSSEL)]
 
-        with mock.patch('vsc.administration.user.StorageOperator') as mock_storage_operator:
+        with mock.patch('vsc.administration.base.StorageOperator') as mock_storage_operator:
             mock_storage_operator.return_value = mock.MagicMock()
 
             for account, site in test_accounts:
@@ -564,7 +564,7 @@ class UserDeploymentTest(TestCase):
 
         test_accounts = [(test_account_1, GENT), (test_account_3, BRUSSEL)]
 
-        with mock.patch('vsc.administration.user.StorageOperator') as mock_storage_operator:
+        with mock.patch('vsc.administration.base.StorageOperator') as mock_storage_operator:
             mock_storage_operator.return_value = mock.MagicMock()
 
             for account, site in test_accounts:
@@ -582,7 +582,7 @@ class UserDeploymentTest(TestCase):
 
         test_accounts = [(test_account_1, GENT), (test_account_3, BRUSSEL)]
 
-        with mock.patch('vsc.administration.user.StorageOperator') as mock_storage_operator:
+        with mock.patch('vsc.administration.base.StorageOperator') as mock_storage_operator:
             mock_storage_operator.return_value = mock.MagicMock()
 
             for account, site in test_accounts:
