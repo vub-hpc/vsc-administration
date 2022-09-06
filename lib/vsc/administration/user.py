@@ -268,8 +268,8 @@ class VscTier2AccountpageUser(VscAccountPageUser):
 
         storage.operator().chmod(0o755, path)
 
-    def _get_storage_partition(self, storage_name):
-        """Seek and return storage partition from institute's storage"""
+    def _get_storage(self, storage_name):
+        """Seek and return storage settings from institute's storage"""
         try:
             storage = self.institute_storage[storage_name]
         except KeyError:
@@ -331,7 +331,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         @type grouping: function that yields the grouping path for the location.
         @type path: function that yields the actual path for the location.
         """
-        storage = self._get_storage_partition(storage_name)
+        storage = self._get_storage(storage_name)
 
         try:
             (grouping_path, fileset) = grouping_f()
@@ -377,7 +377,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
             logging.error("No user quota set for %s", storage_name)
             return
 
-        storage = self._get_storage_partition(storage_name)
+        storage = self._get_storage(storage_name)
 
         # quota expressed in bytes, retrieved in KiB from the account backend
         hard, soft = quota_limits(quota * 1024, self.vsc.quota_soft_fraction, storage.data_replication_factor)
@@ -422,7 +422,7 @@ class VscTier2AccountpageUser(VscAccountPageUser):
 
         Does not overwrite files that may contain user defined content.
         """
-        storage = self._get_storage_partition(VSC_HOME)
+        storage = self._get_storage(VSC_HOME)
 
         path = self._home_path()
         storage.operator().populate_home_dir(

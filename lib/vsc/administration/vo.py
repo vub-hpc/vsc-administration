@@ -204,8 +204,8 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         """
         return self._get_path(storage, mount_point)
 
-    def _get_storage_partition(self, storage_name):
-        """Seek and return storage partition from institute's storage"""
+    def _get_storage(self, storage_name):
+        """Seek and return storage settings from institute's storage"""
         try:
             storage = self.storage[self.host_institute][storage_name]
         except KeyError:
@@ -276,14 +276,14 @@ class VscTier2AccountpageVo(VscAccountPageVo):
     def create_data_fileset(self):
         """Create the VO's directory on the HPC data filesystem. Always set the quota."""
         path = self._data_path()
-        storage = self._get_storage_partition(VSC_DATA)
+        storage = self._get_storage(VSC_DATA)
 
         self._create_fileset(storage, path)
 
     def create_data_shared_fileset(self):
         """Create a VO directory for sharing data on the HPC data filesystem. Always set the quota."""
         path = self._data_shared_path()
-        storage = self._get_storage_partition(VSC_DATA_SHARED)
+        storage = self._get_storage(VSC_DATA_SHARED)
 
         self._create_fileset(
             storage,
@@ -295,13 +295,13 @@ class VscTier2AccountpageVo(VscAccountPageVo):
     def create_scratch_fileset(self, storage_name):
         """Create the VO's directory on the HPC data filesystem. Always set the quota."""
         path = self._scratch_path(storage_name)
-        storage = self._get_storage_partition(storage_name)
+        storage = self._get_storage(storage_name)
 
         self._create_fileset(storage, path)
 
     def _create_vo_dir(self, path, storage_name):
         """Create a user owned directory."""
-        storage = self._get_storage_partition(storage_name)
+        storage = self._get_storage(storage_name)
         storage.operator().make_dir(path)
 
     def _set_quota(self, storage_name, path, quota, fileset_name=None):
@@ -312,7 +312,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         if not fileset_name:
             fileset_name = self.vo.vsc_id
 
-        storage = self._get_storage_partition(storage_name)
+        storage = self._get_storage(storage_name)
 
         # quota expressed in bytes, retrieved in KiB from the account backend
         hard, soft = quota_limits(quota * 1024, self.vsc.quota_soft_fraction, storage.data_replication_factor)
@@ -369,7 +369,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
         @type member: VscTier2AccountpageUser
         @type quota: integer (hard value)
         """
-        storage = self._get_storage_partition(storage_name)
+        storage = self._get_storage(storage_name)
 
         # quota expressed in bytes, retrieved in KiB from the account backend
         hard, soft = quota_limits(quota * 1024, self.vsc.quota_soft_fraction, storage.data_replication_factor)
@@ -451,7 +451,7 @@ class VscTier2AccountpageVo(VscAccountPageVo):
 
     def _create_member_dir(self, member, target, storage_name):
         """Create a member-owned directory in the VO fileset."""
-        storage = self._get_storage_partition(storage_name)
+        storage = self._get_storage(storage_name)
 
         storage.operator().create_stat_directory(
             target,
