@@ -245,7 +245,8 @@ class VscTier2AccountpageUser(VscAccountPageUser):
         try:
             filesystem_name = storage.filesystem
         except AttributeError:
-            logging.exception("Failed to access attribute 'filesystem' in the data storage instance")
+            errmsg = "Failed to access attribute 'filesystem' in the storage configuration of fileset %s"
+            logging.exception(errmsg, fileset_name)
             raise
 
         try:
