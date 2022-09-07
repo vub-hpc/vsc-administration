@@ -106,6 +106,14 @@ class VscTier2Accountpage(object):
 
         return mount_path
 
+    def _get_path(self, storage_name, mount_point=MOUNT_POINT_DEFAULT):
+        """PLACEHOLDER: Get the path for user or VO directory on the given storage_name."""
+        pass
+
+    def _get_grouping_path(self, storage_name, mount_point=MOUNT_POINT_DEFAULT):
+        """PLACEHOLDER: Get the path and the fileset for the user group directory."""
+        pass
+
     def _home_path(self, mount_point=MOUNT_POINT_DEFAULT):
         """Return the path to the home dir."""
         return self._get_path(VSC_HOME, mount_point)
