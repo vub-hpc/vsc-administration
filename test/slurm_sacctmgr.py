@@ -31,7 +31,7 @@ class SlurmSacctmgrTest(TestCase):
         """Test that the sacctmgr output is correctly processed."""
 
         sacctmgr_account_output = [
-            "Account|Descr|Org|Cluster|Parent Name|User|Share|GrpJobs|GrpNodes|GrpCPUs|GrpMem|GrpSubmit|GrpWall|GrpCPUMins|MaxJobs|MaxNodes|MaxCPUs|MaxSubmit|MaxWall|MaxCPUMins|QOS|Def QOS",
+            "Account|Descr|Org|Cluster|ParentName|User|Share|GrpJobs|GrpNodes|GrpCPUs|GrpMem|GrpSubmit|GrpWall|GrpCPUMins|MaxJobs|MaxNodes|MaxCPUs|MaxSubmit|MaxWall|MaxCPUMins|QOS|Def QOS",
             "antwerpen|antwerpen|uantwerpen|banette|root||1||||||||||||||normal|",
             "brussel|brussel|vub|banette|root||1||||||||||||||normal|",
             "gent|gent|gent|banette|root||1||||||||||||||normal|",
