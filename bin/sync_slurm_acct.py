@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2013-2021 Ghent University
+# Copyright 2013-2022 Ghent University
 #
 # This file is part of vsc-administration,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -25,11 +25,12 @@ import sys
 
 from vsc.accountpage.client import AccountpageClient
 from vsc.accountpage.wrappers import mkVo
-from vsc.administration.slurm.sync import get_slurm_acct_info, SyncTypes, SacctMgrException
-from vsc.administration.slurm.sync import slurm_institute_accounts, slurm_vo_accounts, slurm_user_accounts
+from vsc.administration.slurm.sacctmgr import get_slurm_sacct_info, SacctMgrTypes
+from vsc.administration.slurm.sync import (
+    execute_commands, slurm_institute_accounts, slurm_vo_accounts, slurm_user_accounts,
+    )
 from vsc.config.base import GENT, VSC_SLURM_CLUSTERS, INSTITUTE_VOS_BY_INSTITUTE, PRODUCTION, PILOT
 from vsc.utils.nagios import NAGIOS_EXIT_CRITICAL
-from vsc.utils.run import RunNoShell
 from vsc.utils.script_tools import ExtendedSimpleOption
 from vsc.utils.timestamp import convert_timestamp, write_timestamp, retrieve_timestamp_with_default
 
@@ -39,17 +40,10 @@ NAGIOS_CHECK_INTERVAL_THRESHOLD = 60 * 60  # 60 minutes
 SYNC_TIMESTAMP_FILENAME = "/var/cache/%s.timestamp" % (NAGIOS_HEADER)
 SYNC_SLURM_ACCT_LOGFILE = "/var/log/%s.log" % (NAGIOS_HEADER)
 
+MAX_USERS_JOB_CANCEL = 10
 
-def execute_commands(commands):
-    """Run the specified commands"""
-
-    for command in commands:
-        logging.info("Running command: %s", command)
-
-        # if one fails, we simply fail the script and should get notified
-        (ec, _) = RunNoShell.run(command)
-        if ec != 0:
-            raise SacctMgrException("Command failed: {0}".format(command))
+class SyncSanityError(Exception):
+    pass
 
 
 def main():
@@ -80,7 +74,13 @@ def main():
             "strlist",
             'store',
             [PRODUCTION, PILOT]
-        )
+        ),
+        'force': (
+            'Force the sync instead of bailing if too many scancel commands would be issues',
+            None,
+            'store_true',
+            False
+        ),
     }
 
     opts = ExtendedSimpleOption(options)
@@ -96,8 +96,8 @@ def main():
         client = AccountpageClient(token=opts.options.access_token, url=opts.options.account_page_url + "/api/")
         host_institute = opts.options.host_institute
 
-        slurm_account_info = get_slurm_acct_info(SyncTypes.accounts)
-        slurm_user_info = get_slurm_acct_info(SyncTypes.users)
+        slurm_account_info = get_slurm_sacct_info(SacctMgrTypes.accounts)
+        slurm_user_info = get_slurm_sacct_info(SacctMgrTypes.users)
 
         logging.debug("%d accounts found", len(slurm_account_info))
         logging.debug("%d users found", len(slurm_user_info))
@@ -132,7 +132,7 @@ def main():
         sacctmgr_commands += slurm_vo_accounts(account_page_vos, slurm_account_info, clusters, host_institute)
 
         # process VO members
-        sacctmgr_commands += slurm_user_accounts(
+        (job_cancel_commands, user_commands, association_remove_commands) = slurm_user_accounts(
             account_page_members,
             active_accounts,
             slurm_user_info,
@@ -140,12 +140,37 @@ def main():
             opts.options.dry_run
         )
 
-        logging.info("Executing %d commands", len(sacctmgr_commands))
+        # Adding users takes priority
+        sacctmgr_commands += user_commands
 
         if opts.options.dry_run:
             print("Commands to be executed:\n")
             print("\n".join([" ".join(c) for c in sacctmgr_commands]))
         else:
+            logging.info("Executing %d commands", len(sacctmgr_commands))
+            execute_commands(sacctmgr_commands)
+
+        # reset to go on with the remainder of the commands
+        sacctmgr_commands = []
+
+        # safety to avoid emptying the cluster due to some error upstream
+        if not opts.options.force and len(job_cancel_commands) > MAX_USERS_JOB_CANCEL:
+            logging.warning("Would add commands to cancel jobs for %d users", len(job_cancel_commands))
+            logging.debug("Would execute the following cancel commands:")
+            for jc in job_cancel_commands.values():
+                logging.debug("%s", jc)
+            raise SyncSanityError("Would cancel jobs for %d users" % len(job_cancel_commands))
+
+        sacctmgr_commands += [c for cl in job_cancel_commands.values() for c in cl]
+
+        # removing users may fail, so should be done last
+        sacctmgr_commands += association_remove_commands
+
+        if opts.options.dry_run:
+            print("Commands to be executed:\n")
+            print("\n".join([" ".join(c) for c in sacctmgr_commands]))
+        else:
+            logging.info("Executing %d commands", len(sacctmgr_commands))
             execute_commands(sacctmgr_commands)
 
         if not opts.options.dry_run:
