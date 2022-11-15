@@ -46,7 +46,7 @@ class SacctMgrTypes(Enum):
     resource = "resource"
 
 
-# Fields for Slurm 20.11.
+# Fields for Slurm 21.08.
 # FIXME: at some point this should be versioned
 
 SacctUserFields = [
@@ -56,7 +56,7 @@ SacctUserFields = [
 ]
 
 SacctAccountFields = [
-    "Account", "Descr", "Org", "Cluster", "Par_Name", "User", "Share",
+    "Account", "Descr", "Org", "Cluster", "ParentName", "User", "Share",
     "GrpJobs", "GrpNodes", "GrpCPUs", "GrpMem", "GrpSubmit", "GrpWall", "GrpCPUMins",
     "MaxJobs", "MaxNodes", "MaxCPUs", "MaxSubmit", "MaxWall", "MaxCPUMins",
     "QOS", "Def_QOS"

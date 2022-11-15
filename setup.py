@@ -33,7 +33,7 @@ install_requires = [
 ]
 
 PACKAGE = {
-    'version': '4.1.2',
+    'version': '4.1.3',
     'author': [ag, jt],
     'maintainer': [ag, jt],
     'tests_require': ['mock'],
