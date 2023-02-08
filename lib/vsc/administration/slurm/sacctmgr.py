@@ -495,7 +495,7 @@ def create_remove_resource_license_command(name, server, stype):
 
 
 @mksacctmgr('modify')
-def create_modify_resource_license_command(name, server, stype, clusters, count):
+def create_modify_resource_license_command(name, server, stype, count):
     """Create the command to modify a license resource
 
     @returns: the list comprising the command
