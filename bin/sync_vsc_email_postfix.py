@@ -16,8 +16,6 @@
 """
 This script creates the list of canonical email adresses for VSC users.
 """
-from __future__ import print_function
-
 import logging
 
 from vsc.accountpage.sync import Sync

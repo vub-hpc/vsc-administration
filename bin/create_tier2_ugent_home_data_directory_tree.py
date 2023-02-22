@@ -21,7 +21,7 @@ Sets up the basic structure on the UGent home and data storage
 
 import logging
 import os
-from vsc.utils.py2vs3 import configparser
+import configparser
 
 from vsc.filesystem.gpfs import GpfsOperations
 from vsc.config.base import VscStorage

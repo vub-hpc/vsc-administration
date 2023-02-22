@@ -37,8 +37,6 @@ A mechanism that I have heard of being used is to:
 #   However that is not driven by config file, and is not pseudonymous
 # Current main difference: this code is to be run as cron; the other code is a daemon with possibly higher frequency
 
-from __future__ import print_function
-
 import json
 import logging
 import os

@@ -17,7 +17,6 @@
 This script will adjust the quota for the given entity, be it a user or a VO
 on the given storage.
 """
-from __future__ import print_function
 
 import sys
 
