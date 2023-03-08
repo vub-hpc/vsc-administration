@@ -24,7 +24,7 @@ This file contains the utilities for dealing with users on the VSC.
 import logging
 import os
 
-from vsc.utils.py2vs3 import HTTPError
+from urllib.request import HTTPError
 
 from vsc.accountpage.wrappers import mkVscAccountPubkey, mkVscHomeOnScratch
 from vsc.accountpage.wrappers import mkVscAccount, mkUserGroup
@@ -37,7 +37,7 @@ from vsc.config.base import (
 )
 from vsc.filesystem.gpfs import GpfsOperations
 from vsc.filesystem.posix import PosixOperations
-from vsc.utils.py2vs3 import ensure_ascii_string
+from vsc.utils.missing import ensure_ascii_string
 
 # Cache for user instances
 _users_cache = {
