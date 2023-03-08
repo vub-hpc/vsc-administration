@@ -29,11 +29,10 @@ install_requires = [
     'vsc-filesystems >= 1.0.1',
     'vsc-utils >= 2.0.0',
     'lockfile >= 0.9.1',
-    'python-ldap',
 ]
 
 PACKAGE = {
-    'version': '4.1.6',
+    'version': '4.1.7',
     'author': [ag, jt],
     'maintainer': [ag, jt],
     'tests_require': ['mock'],
