@@ -19,6 +19,8 @@ vsc-administration distribution setup.py
 @author: Andy Georges (Ghent University)
 @author: Jens Timmerman (Ghent University)
 """
+import sys
+
 from vsc.install import shared_setup
 from vsc.install.shared_setup import ag, jt
 
@@ -29,8 +31,14 @@ install_requires = [
     'vsc-filesystems >= 1.3.0',
     'vsc-utils >= 2.0.0',
     'lockfile >= 0.9.1',
-    'dataclasses >= 0.8; python_version ~= "3.6.0"',
 ]
+
+if sys.version_info > (3, 6) and sys.version_info < (3, 7):
+    # Python 3.6 needs extra backports and version limits
+    install_requires.extend([
+        'dataclasses >= 0.8',
+        'isort < 5.11.0',
+    ])
 
 PACKAGE = {
     'version': '4.2.0',
