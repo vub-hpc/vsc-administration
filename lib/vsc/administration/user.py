@@ -1,6 +1,6 @@
 # -*- coding: latin-1 -*-
 #
-# Copyright 2012-2022 Ghent University
+# Copyright 2012-2023 Ghent University
 #
 # This file is part of vsc-administration,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -25,7 +25,7 @@ This file contains the utilities for dealing with users on the VSC.
 import logging
 import os
 
-from vsc.utils.py2vs3 import HTTPError
+from urllib.request import HTTPError
 
 from vsc.accountpage.wrappers import mkVscAccountPubkey, mkVscHomeOnScratch
 from vsc.accountpage.wrappers import mkVscAccount, mkUserGroup
@@ -36,7 +36,7 @@ from vsc.config.base import (
     VSC, VSC_DATA, VSC_HOME, VSC_PRODUCTION_SCRATCH, BRUSSEL, GENT, VO_PREFIX_BY_INSTITUTE, VSC_SCRATCH_KYUKON,
     VSC_SCRATCH_THEIA, NEW, MODIFIED, MODIFY, ACTIVE, HOME_KEY, DATA_KEY, SCRATCH_KEY, STORAGE_SHARED_SUFFIX,
 )
-from vsc.utils.py2vs3 import ensure_ascii_string
+from vsc.utils.missing import ensure_ascii_string
 
 # Cache for user instances
 _users_cache = {

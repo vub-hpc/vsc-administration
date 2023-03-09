@@ -1,5 +1,5 @@
 #
-# Copyright 2015-2022 Ghent University
+# Copyright 2015-2023 Ghent University
 #
 # This file is part of vsc-administration,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -23,11 +23,12 @@ from collections import namedtuple
 
 from vsc.install.testing import TestCase
 
+from vsc.administration.slurm.sacctmgr import SacctMgrTypes, SlurmUser
+
 from vsc.administration.slurm.sync import (
-    slurm_vo_accounts, slurm_user_accounts, parse_slurm_acct_dump,
+    slurm_vo_accounts, slurm_user_accounts,
     slurm_institute_accounts, slurm_project_accounts, slurm_project_users_accounts,
     slurm_project_qos,
-    SyncTypes, SlurmAccount, SlurmUser
 )
 
 
@@ -95,8 +96,8 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project5 --state=SUSPENDED"),
             shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project7 --state=PENDING"),
             shlex.split("/usr/bin/scancel --cluster=mycluster --account=gpr_compute_project7 --state=SUSPENDED"),
-            shlex.split("/usr/bin/sacctmgr -i delete account Name=gpr_compute_project5 Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i delete account Name=gpr_compute_project7 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i remove account Name=gpr_compute_project5 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i remove account Name=gpr_compute_project7 Cluster=mycluster"),
         ]]))
 
     def test_slurm_project_qos(self):
@@ -122,9 +123,9 @@ class SlurmSyncTestGent(TestCase):
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add qos Name=mycluster-gpr_compute_project1"),
             shlex.split("/usr/bin/sacctmgr -i add qos Name=mycluster-gpr_compute_project2"),
-            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project1 set flags=NoDecay,DenyOnLimit GRPTRESMins=cpu=2280,gres/gpu=180"),
-            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project2 set flags=NoDecay,DenyOnLimit GRPTRESMins=cpu=300,gres/gpu=1"),
-            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project3 set flags=NoDecay,DenyOnLimit GRPTRESMins=cpu=240,gres/gpu=1"),
+            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project1 set flags=NoDecay,DenyOnLimit GRPTRESMins=billing=2280,cpu=2280,gres/gpu=180"),
+            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project2 set flags=NoDecay,DenyOnLimit GRPTRESMins=billing=300,cpu=300,gres/gpu=1"),
+            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project3 set flags=NoDecay,DenyOnLimit GRPTRESMins=billing=240,cpu=240,gres/gpu=1"),
             shlex.split("/usr/bin/sacctmgr -i remove qos where Name=mycluster-gpr_compute_project4"),
         ]]))
 
@@ -162,8 +163,8 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/sacctmgr -i add user user4 Account=gpr_compute_project2 Cluster=mycluster"),
             shlex.split("/usr/bin/sacctmgr -i add user user6 Account=gpr_compute_project2 Cluster=mycluster"),
             shlex.split("/usr/bin/sacctmgr -i add user user3 Account=gpr_compute_project1 Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i delete user Name=user3 Account=gpr_compute_project2 Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i delete user Name=user4 Account=gpr_compute_project1 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user3 Account=gpr_compute_project2 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user4 Account=gpr_compute_project1 Cluster=mycluster"),
         ]]))
 
 
@@ -216,9 +217,9 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/sacctmgr -i modify user Name=user4 Cluster=banette set DefaultAccount=vo2"),
         ]]))
         self.assertEqual(set([tuple(x) for x in remove_user_commands]), set([tuple(x) for x in [
-            shlex.split("/usr/bin/sacctmgr -i delete user name=user2 Cluster=banette"),
-            shlex.split("/usr/bin/sacctmgr -i delete user name=user3 Account=vo2 Cluster=banette"),
-            shlex.split("/usr/bin/sacctmgr -i delete user name=user4 Account=vo1 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user2 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user3 Account=vo2 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user4 Account=vo1 Cluster=banette"),
         ]]))
 
         self.assertEqual(set([tuple(x) for c in job_cancel_commands.values() for x in c]), set([tuple(x) for x in [
@@ -226,47 +227,6 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/scancel --cluster=banette --user=user3 --account=vo2"),
             shlex.split("/usr/bin/scancel --cluster=banette --user=user4 --account=vo1"),
         ]]))
-
-    def test_parse_slurmm_acct_dump(self):
-        """Test that the sacctmgr output is correctly processed."""
-
-        sacctmgr_account_output = [
-            "Account|Descr|Org|Cluster|Par Name|User|Share|GrpJobs|GrpNodes|GrpCPUs|GrpMem|GrpSubmit|GrpWall|GrpCPUMins|MaxJobs|MaxNodes|MaxCPUs|MaxSubmit|MaxWall|MaxCPUMins|QOS|Def QOS",
-            "antwerpen|antwerpen|uantwerpen|banette|root||1||||||||||||||normal|",
-            "brussel|brussel|vub|banette|root||1||||||||||||||normal|",
-            "gent|gent|gent|banette|root||1||||||||||||||normal|",
-            "vo1|vo1|gent|banette|gent||1||||||||||||||normal|",
-            "vo2|vo2|gent|banette|gent||1||||||||||||||normal|",
-            "vo2|vo2|gvo00002|banette||someuser|1||||||||||||||normal|",
-        ]
-
-        info = parse_slurm_acct_dump(sacctmgr_account_output, SyncTypes.accounts)
-
-        self.assertEqual(set(info), set([
-            SlurmAccount(Account='brussel', Descr='brussel', Org='vub', Cluster='banette', Par_Name='root', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmAccount(Account='gent', Descr='gent', Org='gent', Cluster='banette', Par_Name='root', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmAccount(Account='vo2', Descr='vo2', Org='gent', Cluster='banette', Par_Name='gent', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmAccount(Account='antwerpen', Descr='antwerpen', Org='uantwerpen', Cluster='banette', Par_Name='root', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmAccount(Account='vo1', Descr='vo1', Org='gent', Cluster='banette', Par_Name='gent', User='', Share='1', GrpJobs='', GrpNodes='', GrpCPUs='', GrpMem='', GrpSubmit='', GrpWall='', GrpCPUMins='', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS='')
-        ]))
-
-        sacctmgr_user_output = [
-            "User|Def Acct|Admin|Cluster|Account|Partition|Share|MaxJobs|MaxNodes|MaxCPUs|MaxSubmit|MaxWall|MaxCPUMins|QOS|Def QOS",
-            "root|root|Administrator|banette|root||1|||||||normal|",
-            "root|root|Administrator|banette2|root||1|||||||normal|",
-            "root|root|Administrator|banette3|root||1|||||||normal|",
-            "account1|vo1|None|banette|vo1||1|||||||normal|",
-            "account2|vo1|None|banette|vo1||1|||||||normal|",
-            "account3|vo2|None|banette|vo2||1|||||||normal|",
-        ]
-
-        info = parse_slurm_acct_dump(sacctmgr_user_output, SyncTypes.users)
-
-        self.assertEqual(set(info), set([
-            SlurmUser(User='account1', Def_Acct='vo1', Admin='None', Cluster='banette', Account='vo1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmUser(User='account2', Def_Acct='vo1', Admin='None', Cluster='banette', Account='vo1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmUser(User='account3', Def_Acct='vo2', Admin='None', Cluster='banette', Account='vo2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-        ]))
 
 
 class SlurmSyncTestBrussel(TestCase):
@@ -290,4 +250,3 @@ class SlurmSyncTestBrussel(TestCase):
             shlex.split("/usr/bin/sacctmgr -i add account bvo00005 Parent=brussel Organization=vub Cluster=mycluster Fairshare=14"),
             shlex.split("/usr/bin/sacctmgr -i add account bvo00006 Parent=brussel Organization=vub Cluster=mycluster Fairshare=13")
         ]])
-

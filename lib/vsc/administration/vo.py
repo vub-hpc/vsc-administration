@@ -1,6 +1,6 @@
 # -*- coding: latin-1 -*-
 #
-# Copyright 2012-2022 Ghent University
+# Copyright 2012-2023 Ghent University
 #
 # This file is part of vsc-administration,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -28,7 +28,7 @@ import logging
 import os
 import pwd
 
-from vsc.utils.py2vs3 import HTTPError
+from urllib.request import HTTPError
 
 from vsc.accountpage.wrappers import mkVo, mkVscVoSizeQuota, mkVscAccount, mkVscAutogroup
 from vsc.administration.user import VscTier2AccountpageUser, UserStatusUpdateError

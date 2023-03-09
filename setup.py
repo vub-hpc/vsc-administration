@@ -19,30 +19,20 @@ vsc-administration distribution setup.py
 @author: Andy Georges (Ghent University)
 @author: Jens Timmerman (Ghent University)
 """
-import sys
-
 from vsc.install import shared_setup
 from vsc.install.shared_setup import ag, jt
 
 install_requires = [
     'vsc-accountpage-clients >= 2.1.6',
-    'vsc-base >= 3.0.6',
+    'vsc-base >= 3.5.0',
     'vsc-config >= 3.11.0',
     'vsc-filesystems >= 1.3.0',
     'vsc-utils >= 2.0.0',
     'lockfile >= 0.9.1',
 ]
 
-if sys.version_info < (3, 0):
-    # enum34 is only required with Python 2
-    install_requires.append('enum34')
-    install_requires.append('python-ldap < 3.3.0')
-else:
-    install_requires.append('python-ldap')
-
-
 PACKAGE = {
-    'version': '3.8.0',
+    'version': '4.2.0',
     'author': [ag, jt],
     'maintainer': [ag, jt],
     'tests_require': ['mock'],

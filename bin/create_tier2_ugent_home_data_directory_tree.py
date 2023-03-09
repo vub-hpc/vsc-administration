@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2012-2022 Ghent University
+# Copyright 2012-2023 Ghent University
 #
 # This file is part of vsc-administration,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -21,7 +21,7 @@ Sets up the basic structure on the UGent home and data storage
 
 import logging
 import os
-from vsc.utils.py2vs3 import configparser
+import configparser
 
 from vsc.filesystem.gpfs import GpfsOperations
 from vsc.config.base import VscStorage
