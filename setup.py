@@ -29,6 +29,7 @@ install_requires = [
     'vsc-filesystems >= 1.3.0',
     'vsc-utils >= 2.0.0',
     'lockfile >= 0.9.1',
+    'dataclasses >= 0.8; python_version ~= "3.6.0"',
 ]
 
 PACKAGE = {
