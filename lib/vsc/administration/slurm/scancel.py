@@ -18,16 +18,18 @@ scancel commands
 SLURM_SCANCEL = "/usr/bin/scancel"
 
 
-def create_remove_user_jobs_command(user, cluster, state=None, account=None):
+def create_remove_user_jobs_command(user, cluster=None, state=None, account=None):
     """Create the command to remove a user's jobs in the given state.
 
     @returns: a list comprising the command
     """
     remove_user_jobs_command = [
         SLURM_SCANCEL,
-        "--cluster={cluster}".format(cluster=cluster),
         "--user={user}".format(user=user),
     ]
+
+    if cluster is not None:
+        remove_user_jobs_command.append("--cluster={cluster}".format(cluster=cluster))
 
     if state is not None:
         remove_user_jobs_command.append("--state={state}".format(state=state))
