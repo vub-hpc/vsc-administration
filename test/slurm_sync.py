@@ -217,9 +217,9 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/sacctmgr -i modify user Name=user4 Cluster=banette set DefaultAccount=vo2"),
         ]]))
         self.assertEqual(set([tuple(x) for x in remove_user_commands]), set([tuple(x) for x in [
-            shlex.split("/usr/bin/sacctmgr -i remove user Name=user2 Cluster=banette"),
-            shlex.split("/usr/bin/sacctmgr -i remove user Name=user3 Account=vo2"),
-            shlex.split("/usr/bin/sacctmgr -i remove user Name=user4 Account=vo1"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user2"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user3 Account=vo2 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user4 Account=vo1 Cluster=banette"),
         ]]))
 
         self.assertEqual(set([tuple(x) for c in job_cancel_commands.values() for x in c]), set([tuple(x) for x in [
