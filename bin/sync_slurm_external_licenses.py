@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2013-2022 Ghent University
+# Copyright 2013-2023 Ghent University
 #
 # This file is part of vsc-administration,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -36,8 +36,6 @@ A mechanism that I have heard of being used is to:
 # See example imnplementation of https://gitlab.com/ggeurts/slurm-license_monitor/-/tree/master/
 #   However that is not driven by config file, and is not pseudonymous
 # Current main difference: this code is to be run as cron; the other code is a daemon with possibly higher frequency
-
-from __future__ import print_function
 
 import json
 import logging
@@ -235,7 +233,7 @@ def update_licenses(licenses, clusters, ignore_resources, force_update):
         # Default supported modification is updated count
         if force_update or lic['count'] != info[name].Count:
             new_update_cmds.append(create_modify_resource_license_command(
-                lic['name'], lic['extern'], lic['type'], clusters, lic['count']))
+                lic['name'], lic['extern'], lic['type'], lic['count']))
 
     # Cleanup licenses
     remove_cmds = []

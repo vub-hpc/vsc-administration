@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2013-2022 Ghent University
+# Copyright 2013-2023 Ghent University
 #
 # This file is part of vsc-administration,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -18,7 +18,6 @@ This script synchronises the users and VO's from the HPC account page to the Slu
 
 The script must result in an idempotent execution, to ensure nothing breaks.
 """
-from __future__ import print_function
 
 import logging
 import sys

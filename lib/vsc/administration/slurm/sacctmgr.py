@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2022 Ghent University
+# Copyright 2013-2023 Ghent University
 #
 # This file is part of vsc-administration,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -497,8 +497,8 @@ def create_remove_resource_license_command(name, server, stype):
 
 
 @mksacctmgr('modify')
-def create_modify_resource_license_command(name, server, stype, clusters, count):
-    """Create the command to add a license resource
+def create_modify_resource_license_command(name, server, stype, count):
+    """Create the command to modify a license resource
 
     @returns: the list comprising the command
     """

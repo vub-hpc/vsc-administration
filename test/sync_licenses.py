@@ -1,5 +1,5 @@
 #
-# Copyright 2022-2022 Ghent University
+# Copyright 2022-2023 Ghent University
 #
 # This file is part of vsc-administration,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -169,7 +169,7 @@ an-5|ano-comp2|License|20|10|flexlm
         logging.debug("new_update %s remove %s", nw_up, rem)
         self.assertEqual(nw_up, [
             ['/usr/bin/sacctmgr', '-i', 'add', 'resource', 'Type=license', 'Name=ano-1', 'Server=ano-comp1', 'ServerType=strange', 'Cluster=clust1,clust2', 'Count=100', 'PercentAllowed=100'],
-            ['/usr/bin/sacctmgr', '-i', 'modify', 'resource', 'whereType=license', 'Name=an-5', 'Server=ano-comp2', 'ServerType=flexlm', 'set', 'Cluster=clust1,clust2', 'Count=7', 'PercentAllowed=100'],
+            ['/usr/bin/sacctmgr', '-i', 'modify', 'resource', 'where', 'Name=an-5', 'Server=ano-comp2', 'ServerType=flexlm', 'set', 'Count=7'],
         ])
         self.assertEqual(rem, [
             ['/usr/bin/sacctmgr', '-i', 'remove', 'resource', 'where', 'Type=license', 'Name=comsol', 'Server=bogus', 'ServerType=flexlm'],
