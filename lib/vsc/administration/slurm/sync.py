@@ -40,7 +40,7 @@ class SCommandException(Exception):
     pass
 
 
-def execute_commands(commands):
+def execute_commands(commands, disallow_failure=True):
     """Run the specified commands"""
 
     for command in commands:
@@ -48,7 +48,7 @@ def execute_commands(commands):
 
         # if one fails, we simply fail the script and should get notified
         (ec, _) = RunNoShell.run(command)
-        if ec != 0:
+        if ec != 0 and disallow_failure:
             raise SCommandException("Command failed: {0}".format(command))
 
 
@@ -327,7 +327,12 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
 
         # these are the users that need to be completely removed as they are no longer an active user in any
         # (including the institute default) VO
-        remove_users |= cluster_users - active_vo_members
+        remove_users_cluster = cluster_users - active_vo_members
+        remove_users |= remove_users_cluster
+
+        # Removed users should no longer have running jobs.
+        for user in remove_users_cluster:
+            job_cancel_commands[user].append(create_remove_user_jobs_command(user=user, cluster=cluster))
 
         new_users = set()
         changed_users = set()
@@ -383,10 +388,6 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
             commands.extend([add, default_account])
             association_remove_commands.append(remove_association_user)
             job_cancel_commands[user].append(remove_jobs)
-
-    # Remove users from the clusters (in all accounts)
-    for user in remove_users:
-        job_cancel_commands[user].append(create_remove_user_jobs_command(user=user))
 
     association_remove_commands.extend([
         create_remove_user_command(user=user) for user in remove_users

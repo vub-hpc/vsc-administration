@@ -29,7 +29,7 @@ def create_remove_user_jobs_command(user, cluster=None, state=None, account=None
     ]
 
     if cluster is not None:
-        remove_user_jobs_command.append("--cluster={cluster}".format(cluster=cluster))
+        remove_user_jobs_command.append("--clusters={cluster}".format(cluster=cluster))
 
     if state is not None:
         remove_user_jobs_command.append("--state={state}".format(state=state))
