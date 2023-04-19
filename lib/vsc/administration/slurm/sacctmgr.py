@@ -504,7 +504,7 @@ def create_modify_resource_license_command(name, server, stype, count):
     """
     command = [
         "resource",
-        "where"
+        "where",
         f"Name={name}",
         f"Server={server}",
         f"ServerType={stype}",
