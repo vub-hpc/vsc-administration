@@ -317,7 +317,7 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
         for m in members:
             reverse_vo_mapping[m] = (vo.vsc_id, vo.institute['name'])
 
-    remove_users = set()  # we do not make a disctinction between clusters, i.e., inactive users should be removed everywhere
+    remove_users = set()  # we do not make a disctinction between clusters
 
     for cluster in clusters:
         cluster_users_acct = [
