@@ -223,9 +223,9 @@ class SlurmSyncTestGent(TestCase):
         ]]))
 
         self.assertEqual(set([tuple(x) for c in job_cancel_commands.values() for x in c]), set([tuple(x) for x in [
-            shlex.split("/usr/bin/scancel --cluster=banette --user=user2"),
-            shlex.split("/usr/bin/scancel --cluster=banette --user=user3 --account=vo2"),
-            shlex.split("/usr/bin/scancel --cluster=banette --user=user4 --account=vo1"),
+            shlex.split("/usr/bin/scancel --user=user2 --clusters=banette"),
+            shlex.split("/usr/bin/scancel --user=user3 --clusters=banette --account=vo2"),
+            shlex.split("/usr/bin/scancel --user=user4 --clusters=banette --account=vo1"),
         ]]))
 
 
