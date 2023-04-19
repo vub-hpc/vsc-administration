@@ -505,12 +505,10 @@ def create_modify_resource_license_command(name, server, stype, count):
     command = [
         "resource",
         "where"
-        "Type=license",
         f"Name={name}",
         f"Server={server}",
         f"ServerType={stype}",
         "set",
-        "Cluster={0}".format(",".join(clusters)),
         f"Count={count}",
         "PercentAllowed=100",
     ]
