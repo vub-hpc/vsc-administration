@@ -278,7 +278,7 @@ def create_change_account_fairshare_command(account, cluster, fairshare):
 
 
 @mksacctmgr('add')
-def create_add_user_command(user, account, cluster, default_account=None):
+def create_add_user_command(user, account, cluster, partition=None, default_account=None):
     """
     Creates the command to add the given account.
 
@@ -295,6 +295,10 @@ def create_add_user_command(user, account, cluster, default_account=None):
         "Account={0}".format(account),
         "Cluster={0}".format(cluster)
     ]
+    if partition is not None:
+        command.append(
+            f"Partition={partition}"
+        )
     if default_account is not None:
         command.append(
             "DefaultAccount={0}".format(account),
