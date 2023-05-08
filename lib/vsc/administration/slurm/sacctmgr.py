@@ -385,7 +385,7 @@ def create_remove_account_command(account, cluster):
 
 
 @mksacctmgr('remove')
-def create_remove_user_account_command(user, account, cluster):
+def create_remove_user_account_command(user, account, cluster, partition=None):
     """Create the command to remove a user.
 
     @returns: list comprising the command
@@ -396,6 +396,9 @@ def create_remove_user_account_command(user, account, cluster):
         "Account={account}".format(account=account),
         "Cluster={cluster}".format(cluster=cluster)
     ]
+
+    if partition is not None:
+        command.append(f"Partition={partition}")
 
     logging.debug(
         "Adding command to remove user %s with account %s from Cluster=%s",

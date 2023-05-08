@@ -225,7 +225,8 @@ def slurm_project_users_accounts(
 
     - If the user does not exist on the system:
         - a new association in the default account is created. The associated QoS does not allow jobs.
-        - a new association in the project account is created in combination with the allowed partitions if any are specified
+        - a new association in the project account is created in combination with the allowed partitions
+          if any are specified
 
     - For users who left the project:
         - The user's association in the project is removed.
@@ -239,27 +240,48 @@ def slurm_project_users_accounts(
             (user.User, user.Account, user.Partition) for user in slurm_user_info if user and user.Cluster == cluster
         ]
 
+        print(f"cluster_users_acct: {cluster_users_acct}")
+
         protected_users = [u for (u, a, _) in cluster_users_acct if a in protected_accounts]
 
         new_users = set()
         remove_project_users = set()
+        obsolete_slurm_project_users = set()
         all_project_users = set()
 
         for (members, project_name, project_partitions) in project_members:
 
             # these are the current Slurm users for this project
-            slurm_project_users = set([user for (user, acct, part) in cluster_users_acct if acct == project_name and part in project_partitions])
+            slurm_project_users = set([
+                user for (user, acct, part) in cluster_users_acct
+                if acct == project_name and part in project_partitions
+            ])
+            obsolete_slurm_project_users |= set([
+                (user, acct, part) for (user, acct, part) in cluster_users_acct
+                if acct == project_name and part not in project_partitions
+            ])
             all_project_users |= slurm_project_users
 
             # these users are not yet in the Slurm DBD for this project
-            new_users |= set([(user, project_name, project_partitions) for user in (members & active_accounts) - slurm_project_users])
+            new_users |= set([
+                (user, project_name, tuple(project_partitions))
+                for user in (members & active_accounts) - slurm_project_users
+            ])
 
             # these are the Slurm users that should no longer be associated with the project
             # XXX: what to do with the partitions here? if we first remove, then add, this should be sufficient?
             remove_project_users |= set([(user, project_name) for user in slurm_project_users - members])
 
-        logging.info("%d new users", len(new_users))
-        logging.info("%d removed project users", len(remove_project_users))
+            logging.info("%d new users", len(new_users))
+            logging.info("%d removed project users", len(remove_project_users))
+            logging.info("===============================================================")
+            logging.info(f"Project {project_name} members: {members}")
+            logging.info(f"Project {project_name} project_partitions: {project_partitions}")
+            logging.info(f"Project {project_name} slurm_project_users: {slurm_project_users}")
+            logging.info(f"Project {project_name} obsolete_slurm_project_users: {obsolete_slurm_project_users}")
+            logging.info(f"Project {project_name} new_users: {new_users}")
+            logging.info(f"Project {project_name} removed users: {remove_project_users}")
+            logging.info("===============================================================")
 
         # these are the users not in any project, we should decide if we want any of those
         remove_slurm_users = set([u[0] for u in cluster_users_acct if u not in protected_users]) - all_project_users
@@ -269,11 +291,18 @@ def slurm_project_users_accounts(
                 "Number of slurm users not in projects: %d > 0: %s", len(remove_slurm_users), remove_slurm_users
             )
 
+        cluster_users_with_default_account = set([u for (u, a, _) in cluster_users_acct if a == default_account])
+
         # kick out users no longer in the project or whose partition changed
         commands.extend([
             create_remove_user_account_command(user=user, account=project_name, cluster=cluster)
             for (user, project_name) in remove_project_users
         ])
+
+        commands.extend([
+            create_remove_user_account_command(user=user, account=project_name, cluster=cluster, partition=partition)
+            for (user, project_name, partition) in obsolete_slurm_project_users
+            ])
 
         # remove associations in the default account for users no longer in any project
         commands.extend([
@@ -281,14 +310,15 @@ def slurm_project_users_accounts(
             for user in cluster_users_with_default_account - all_project_users if user not in protected_users
         ])
 
-    # create associations in the default account for users that do not already have one
-        cluster_users_with_default_account = set([u for (u, a) in cluster_users_acct if a == default_account])
+        # create associations in the default account for users that do not already have one
         commands.extend([create_add_user_command(
             user=user,
             account=default_account,
             default_account=default_account,
             cluster=cluster,
-            partition=project_partition) for (user, _, project_partition) in new_users if user not in cluster_users_with_default_account
+            partition=p)
+            for (user, _, project_partition) in new_users for p in project_partition
+            if user not in cluster_users_with_default_account
         ])
 
         # create associations for the actual project's new users
@@ -296,7 +326,7 @@ def slurm_project_users_accounts(
             user=user,
             account=project_name,
             cluster=cluster,
-            partition=project_partition) for (user, project_name, project_partition) in new_users
+            partition=p) for (user, project_name, project_partition) in new_users for p in project_partition
         ])
 
         return commands
