@@ -272,16 +272,16 @@ def slurm_project_users_accounts(
             # XXX: what to do with the partitions here? if we first remove, then add, this should be sufficient?
             remove_project_users |= set([(user, project_name) for user in slurm_project_users - members])
 
-            logging.info("%d new users", len(new_users))
-            logging.info("%d removed project users", len(remove_project_users))
-            logging.info("===============================================================")
-            logging.info(f"Project {project_name} members: {members}")
-            logging.info(f"Project {project_name} project_partitions: {project_partitions}")
-            logging.info(f"Project {project_name} slurm_project_users: {slurm_project_users}")
-            logging.info(f"Project {project_name} obsolete_slurm_project_users: {obsolete_slurm_project_users}")
-            logging.info(f"Project {project_name} new_users: {new_users}")
-            logging.info(f"Project {project_name} removed users: {remove_project_users}")
-            logging.info("===============================================================")
+            logging.debug("%d new users", len(new_users))
+            logging.debug("%d removed project users", len(remove_project_users))
+            logging.debug("===============================================================")
+            logging.debug(f"Project {project_name} members: {members}")
+            logging.debug(f"Project {project_name} project_partitions: {project_partitions}")
+            logging.debug(f"Project {project_name} slurm_project_users: {slurm_project_users}")
+            logging.debug(f"Project {project_name} obsolete_slurm_project_users: {obsolete_slurm_project_users}")
+            logging.debug(f"Project {project_name} new_users: {new_users}")
+            logging.debug(f"Project {project_name} removed users: {remove_project_users}")
+            logging.debug("===============================================================")
 
         # these are the users not in any project, we should decide if we want any of those
         remove_slurm_users = set([u[0] for u in cluster_users_acct if u not in protected_users]) - all_project_users
