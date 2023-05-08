@@ -244,10 +244,10 @@ def create_default_account_command(user, account, cluster):
     """
     command = [
         "user",
-        "Name={0}".format(user),
-        "Cluster={0}".format(cluster),
+        f"Name={user}",
+        f"Cluster={cluster}",
         "set",
-        "DefaultAccount={0}".format(account),
+        f"DefaultAccount={account}",
     ]
     logging.debug(
         "Creating command to set default account to %s for %s on cluster %s",
@@ -262,10 +262,10 @@ def create_default_account_command(user, account, cluster):
 def create_change_account_fairshare_command(account, cluster, fairshare):
     command = [
         "account",
-        "name={0}".format(account),
-        "cluster={0}".format(cluster),
+        f"name={account}",
+        f"cluster={cluster}",
         "set",
-        "fairshare={0}".format(fairshare),
+        f"fairshare={fairshare}",
     ]
     logging.debug(
         "Adding command to change fairshare for account %s on cluster %s to %d",
@@ -292,12 +292,12 @@ def create_add_user_command(user, account, cluster, default_account=None):
     command = [
         "user",
         user,
-        "Account={0}".format(account),
-        "Cluster={0}".format(cluster)
+        f"Account={account}",
+        f"Cluster={cluster}",
     ]
     if default_account is not None:
         command.append(
-            "DefaultAccount={0}".format(account),
+            f"DefaultAccount={account}",
         )
     logging.debug(
         "Adding command to add user %s with Account=%s Cluster=%s",
@@ -340,16 +340,18 @@ def create_change_user_command(user, current_vo_id, new_vo_id, cluster):
 
 
 @mksacctmgr('remove')
-def create_remove_user_command(user, cluster):
+def create_remove_user_command(user, cluster=None):
     """Create the command to remove a user.
 
     @returns: list comprising the command
     """
     command = [
         "user",
-        "Name={user}".format(user=user),
-        "Cluster={cluster}".format(cluster=cluster)
+        f"Name={user}",
     ]
+
+    if cluster is not None:
+        command.append(f"Cluster={cluster}")
     logging.debug(
         "Adding command to remove user %s from Cluster=%s",
         user,
@@ -367,8 +369,8 @@ def create_remove_account_command(account, cluster):
     """
     command = [
         "account",
-        "Name={account}".format(account=account),
-        "Cluster={cluster}".format(cluster=cluster),
+        f"Name={account}",
+        f"Cluster={cluster}",
     ]
 
     logging.debug(
@@ -388,9 +390,9 @@ def create_remove_user_account_command(user, account, cluster):
     """
     command = [
         "user",
-        "Name={user}".format(user=user),
-        "Account={account}".format(account=account),
-        "Cluster={cluster}".format(cluster=cluster)
+        f"Name={user}",
+        f"Account={account}",
+        f"Cluster={cluster}",
     ]
 
     logging.debug(
@@ -411,7 +413,7 @@ def create_add_qos_command(name):
     """
     command = [
         "qos",
-        "Name={0}".format(name)
+        f"Name={name}",
     ]
 
     return command
@@ -428,7 +430,7 @@ def create_remove_qos_command(name):
     command = [
         "qos",
         "where",
-        "Name={0}".format(name),
+        f"Name={name}",
     ]
 
     return command
@@ -451,7 +453,7 @@ def create_modify_qos_command(name, settings):
     ]
 
     for k, v in settings.items():
-        command.append("{0}={1}".format(k, v))
+        command.append(f"{k}={v}")
 
     return command
 
@@ -465,11 +467,11 @@ def create_add_resource_license_command(name, server, stype, clusters, count):
     command = [
         "resource",
         "Type=license",
-        "Name={0}".format(name),
-        "Server={0}".format(server),
-        "ServerType={0}".format(stype),
-        "Cluster={0}".format(",".join(clusters)),
-        "Count={0}".format(count),
+        f"Name={name}",
+        f"Server={server}",
+        f"ServerType={stype}",
+        "Cluster={}".format(",".join(clusters)),
+        f"Count={count}",
         "PercentAllowed=100",
     ]
 
@@ -486,9 +488,9 @@ def create_remove_resource_license_command(name, server, stype):
         "resource",
         "where",
         "Type=license",
-        "Name={0}".format(name),
-        "Server={0}".format(server),
-        "ServerType={0}".format(stype),
+        f"Name={name}",
+        f"Server={server}",
+        f"ServerType={stype}",
     ]
 
     return command
@@ -503,11 +505,12 @@ def create_modify_resource_license_command(name, server, stype, count):
     command = [
         "resource",
         "where",
-        "Name={0}".format(name),
-        "Server={0}".format(server),
-        "ServerType={0}".format(stype),
+        f"Name={name}",
+        f"Server={server}",
+        f"ServerType={stype}",
         "set",
-        "Count={0}".format(count),
+        f"Count={count}",
+        "PercentAllowed=100",
     ]
 
     return command
