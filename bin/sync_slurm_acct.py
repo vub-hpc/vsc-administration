@@ -171,7 +171,7 @@ def main():
             print("\n".join([" ".join(c) for c in sacctmgr_commands]))
         else:
             logging.info("Executing %d commands", len(sacctmgr_commands))
-            execute_commands(scancel_commands, disallow_failure=False)
+            execute_commands(scancel_commands, allow_failure=True)
             execute_commands(sacctmgr_commands)
 
         if not opts.options.dry_run:

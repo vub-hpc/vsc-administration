@@ -40,7 +40,7 @@ class SCommandException(Exception):
     pass
 
 
-def execute_commands(commands, disallow_failure=True):
+def execute_commands(commands, allow_failure=False):
     """Run the specified commands"""
 
     for command in commands:
@@ -48,7 +48,7 @@ def execute_commands(commands, disallow_failure=True):
 
         # if one fails, we simply fail the script and should get notified
         (ec, _) = RunNoShell.run(command)
-        if ec != 0 and disallow_failure:
+        if ec != 0 and not allow_failure:
             raise SCommandException("Command failed: {0}".format(command))
 
 
