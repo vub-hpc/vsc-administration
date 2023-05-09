@@ -240,8 +240,6 @@ def slurm_project_users_accounts(
             (user.User, user.Account, user.Partition) for user in slurm_user_info if user and user.Cluster == cluster
         ]
 
-        print(f"cluster_users_acct: {cluster_users_acct}")
-
         protected_users = [u for (u, a, _) in cluster_users_acct if a in protected_accounts]
 
         new_users = set()
