@@ -281,32 +281,7 @@ def slurm_project_users_accounts(
             logging.debug(f"Project {project_name} removed users: {remove_project_users}")
             logging.debug("===============================================================")
 
-        # these are the users not in any project, we should decide if we want any of those
-        remove_slurm_users = set([u[0] for u in cluster_users_acct if u not in protected_users]) - all_project_users
-
-        if remove_slurm_users:
-            logging.warning(
-                "Number of slurm users not in projects: %d > 0: %s", len(remove_slurm_users), remove_slurm_users
-            )
-
         cluster_users_with_default_account = set([u for (u, a, _) in cluster_users_acct if a == default_account])
-
-        # kick out users no longer in the project or whose partition changed
-        commands.extend([
-            create_remove_user_account_command(user=user, account=project_name, cluster=cluster)
-            for (user, project_name) in remove_project_users
-        ])
-
-        commands.extend([
-            create_remove_user_account_command(user=user, account=project_name, cluster=cluster, partition=partition)
-            for (user, project_name, partition) in obsolete_slurm_project_users
-            ])
-
-        # remove associations in the default account for users no longer in any project
-        commands.extend([
-            create_remove_user_account_command(user=user, account=default_account, cluster=cluster)
-            for user in cluster_users_with_default_account - all_project_users if user not in protected_users
-        ])
 
         # create associations in the default account for users that do not already have one
         commands.extend([create_add_user_command(
@@ -325,6 +300,32 @@ def slurm_project_users_accounts(
             account=project_name,
             cluster=cluster,
             partition=p) for (user, project_name, project_partition) in new_users for p in project_partition
+        ])
+
+        # these are the users not in any project, we should decide if we want any of those
+        remove_slurm_users = set([u[0] for u in cluster_users_acct if u not in protected_users]) - all_project_users
+
+        if remove_slurm_users:
+            logging.warning(
+                "Number of slurm users not in projects: %d > 0: %s", len(remove_slurm_users), remove_slurm_users
+            )
+
+
+        # kick out users no longer in the project or whose partition changed
+        commands.extend([
+            create_remove_user_account_command(user=user, account=project_name, cluster=cluster)
+            for (user, project_name) in remove_project_users
+        ])
+
+        commands.extend([
+            create_remove_user_account_command(user=user, account=project_name, cluster=cluster, partition=partition)
+            for (user, project_name, partition) in obsolete_slurm_project_users
+            ])
+
+        # remove associations in the default account for users no longer in any project
+        commands.extend([
+            create_remove_user_account_command(user=user, account=default_account, cluster=cluster)
+            for user in cluster_users_with_default_account - all_project_users if user not in protected_users
         ])
 
         return commands
