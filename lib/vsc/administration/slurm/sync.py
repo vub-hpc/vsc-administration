@@ -328,7 +328,7 @@ def slurm_project_users_accounts(
             for user in cluster_users_with_default_account - all_project_users if user not in protected_users
         ])
 
-        return commands
+    return commands
 
 
 def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, dry_run=False):
