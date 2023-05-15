@@ -278,7 +278,7 @@ def create_change_account_fairshare_command(account, cluster, fairshare):
 
 
 @mksacctmgr('add')
-def create_add_user_command(user, account, cluster, default_account=None):
+def create_add_user_command(user, account, cluster, partition=None, default_account=None):
     """
     Creates the command to add the given account.
 
@@ -295,6 +295,10 @@ def create_add_user_command(user, account, cluster, default_account=None):
         f"Account={account}",
         f"Cluster={cluster}",
     ]
+    if partition is not None:
+        command.append(
+            f"Partition={partition}"
+        )
     if default_account is not None:
         command.append(
             f"DefaultAccount={account}",
@@ -383,7 +387,7 @@ def create_remove_account_command(account, cluster):
 
 
 @mksacctmgr('remove')
-def create_remove_user_account_command(user, account, cluster):
+def create_remove_user_account_command(user, account, cluster, partition=None):
     """Create the command to remove a user.
 
     @returns: list comprising the command
@@ -394,6 +398,9 @@ def create_remove_user_account_command(user, account, cluster):
         f"Account={account}",
         f"Cluster={cluster}",
     ]
+
+    if partition is not None:
+        command.append(f"Partition={partition}")
 
     logging.debug(
         "Adding command to remove user %s with account %s from Cluster=%s",
