@@ -251,19 +251,19 @@ def slurm_project_users_accounts(
 
             # these are the current Slurm users for this project
             slurm_project_users = set([
-                user for (user, acct, part) in cluster_users_acct
+                (user, part) for (user, acct, part) in cluster_users_acct
                 if acct == project_name and part in project_partitions
             ])
             obsolete_slurm_project_users |= set([
                 (user, acct, part) for (user, acct, part) in cluster_users_acct
                 if acct == project_name and part not in project_partitions
             ])
-            all_project_users |= slurm_project_users
+            all_project_users |= set([u for (u, _) in slurm_project_users])
 
             # these users are not yet in the Slurm DBD for this project
             new_users |= set([
-                (user, project_name, tuple(project_partitions))
-                for user in (members & active_accounts) - slurm_project_users
+                (user, project_name, part)
+                for (user, part) in set([(u, p) for u in (members & active_accounts) for p in project_partitions]) - slurm_project_users
             ])
 
             # these are the Slurm users that should no longer be associated with the project
