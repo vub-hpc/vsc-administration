@@ -301,8 +301,8 @@ def slurm_project_users_accounts(
         commands.extend([create_add_user_command(
             user=user,
             account=project_name,
-            cluster=cluster,
             default_account=default_account,
+            cluster=cluster,
             partition=project_partition) for (user, project_name, project_partition) in new_users
         ])
 

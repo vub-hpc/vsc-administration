@@ -301,7 +301,7 @@ def create_add_user_command(user, account, cluster, partition=None, default_acco
         )
     if default_account is not None:
         command.append(
-            f"DefaultAccount={account}",
+            f"DefaultAccount={default_account}",
         )
     logging.debug(
         "Adding command to add user %s with Account=%s Cluster=%s",
