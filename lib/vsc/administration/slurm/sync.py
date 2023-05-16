@@ -263,7 +263,7 @@ def slurm_project_users_accounts(
             # these users are not yet in the Slurm DBD for this project
             new_users |= set([
                 (user, project_name, part)
-                for (user, part) in 
+                for (user, part) in
                 set([(u, p) for u in (members & active_accounts) for p in project_partitions]) - slurm_project_users
             ])
 
