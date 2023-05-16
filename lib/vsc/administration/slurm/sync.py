@@ -289,7 +289,7 @@ def slurm_project_users_accounts(
             account=default_account,
             default_account=default_account,
             cluster=cluster,
-            partition=p)
+            partition=project_partition)
             for (user, _, project_partition) in new_users
             if user not in cluster_users_with_default_account
         ])
@@ -299,7 +299,7 @@ def slurm_project_users_accounts(
             user=user,
             account=project_name,
             cluster=cluster,
-            partition=p) for (user, project_name, project_partition) in new_users
+            partition=project_partition) for (user, project_name, project_partition) in new_users
         ])
 
         # these are the users not in any project, we should decide if we want any of those
