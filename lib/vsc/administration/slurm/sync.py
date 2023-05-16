@@ -263,12 +263,15 @@ def slurm_project_users_accounts(
             # these users are not yet in the Slurm DBD for this project
             new_users |= set([
                 (user, project_name, part)
-                for (user, part) in set([(u, p) for u in (members & active_accounts) for p in project_partitions]) - slurm_project_users
+                for (user, part) in 
+                set([(u, p) for u in (members & active_accounts) for p in project_partitions]) - slurm_project_users
             ])
 
             # these are the Slurm users that should no longer be associated with the project
-            # XXX: what to do with the partitions here? if we first remove, then add, this should be sufficient?
-            remove_project_users |= set([(user, project_name) for user in slurm_project_users - members])
+            remove_project_users |= set([
+                (user, project_name, part) for (user, acct, part) in cluster_users_acct
+                if acct == project_name and (user not in members or part not in project_partitions)
+            ])
 
             logging.debug("%d new users", len(new_users))
             logging.debug("%d removed project users", len(remove_project_users))
@@ -313,14 +316,14 @@ def slurm_project_users_accounts(
 
         # kick out users no longer in the project or whose partition changed
         commands.extend([
-            create_remove_user_account_command(user=user, account=project_name, cluster=cluster)
-            for (user, project_name) in remove_project_users
+            create_remove_user_account_command(user=user, account=project_name, cluster=cluster, partition=partition)
+            for (user, project_name, partition) in remove_project_users
         ])
 
         commands.extend([
             create_remove_user_account_command(user=user, account=project_name, cluster=cluster, partition=partition)
             for (user, project_name, partition) in obsolete_slurm_project_users
-            ])
+        ])
 
         # remove associations in the default account for users no longer in any project
         commands.extend([
