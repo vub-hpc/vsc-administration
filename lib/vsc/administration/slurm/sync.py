@@ -251,24 +251,27 @@ def slurm_project_users_accounts(
 
             # these are the current Slurm users for this project
             slurm_project_users = set([
-                user for (user, acct, part) in cluster_users_acct
+                (user, part) for (user, acct, part) in cluster_users_acct
                 if acct == project_name and part in project_partitions
             ])
             obsolete_slurm_project_users |= set([
                 (user, acct, part) for (user, acct, part) in cluster_users_acct
                 if acct == project_name and part not in project_partitions
             ])
-            all_project_users |= slurm_project_users
+            all_project_users |= set([u for (u, _) in slurm_project_users])
 
             # these users are not yet in the Slurm DBD for this project
             new_users |= set([
-                (user, project_name, tuple(project_partitions))
-                for user in (members & active_accounts) - slurm_project_users
+                (user, project_name, part)
+                for (user, part) in
+                set([(u, p) for u in (members & active_accounts) for p in project_partitions]) - slurm_project_users
             ])
 
             # these are the Slurm users that should no longer be associated with the project
-            # XXX: what to do with the partitions here? if we first remove, then add, this should be sufficient?
-            remove_project_users |= set([(user, project_name) for user in slurm_project_users - members])
+            remove_project_users |= set([
+                (user, project_name, part) for (user, acct, part) in cluster_users_acct
+                if acct == project_name and (user not in members or part not in project_partitions)
+            ])
 
             logging.debug("%d new users", len(new_users))
             logging.debug("%d removed project users", len(remove_project_users))
@@ -289,8 +292,8 @@ def slurm_project_users_accounts(
             account=default_account,
             default_account=default_account,
             cluster=cluster,
-            partition=p)
-            for (user, _, project_partitions) in new_users for p in project_partitions
+            partition=project_partition)
+            for (user, _, project_partition) in new_users
             if user not in cluster_users_with_default_account
         ])
 
@@ -298,8 +301,9 @@ def slurm_project_users_accounts(
         commands.extend([create_add_user_command(
             user=user,
             account=project_name,
+            default_account=default_account,
             cluster=cluster,
-            partition=p) for (user, project_name, project_partitions) in new_users for p in project_partitions
+            partition=project_partition) for (user, project_name, project_partition) in new_users
         ])
 
         # these are the users not in any project, we should decide if we want any of those
@@ -313,14 +317,14 @@ def slurm_project_users_accounts(
 
         # kick out users no longer in the project or whose partition changed
         commands.extend([
-            create_remove_user_account_command(user=user, account=project_name, cluster=cluster)
-            for (user, project_name) in remove_project_users
+            create_remove_user_account_command(user=user, account=project_name, cluster=cluster, partition=partition)
+            for (user, project_name, partition) in remove_project_users
         ])
 
         commands.extend([
             create_remove_user_account_command(user=user, account=project_name, cluster=cluster, partition=partition)
             for (user, project_name, partition) in obsolete_slurm_project_users
-            ])
+        ])
 
         # remove associations in the default account for users no longer in any project
         commands.extend([

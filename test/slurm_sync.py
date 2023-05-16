@@ -157,17 +157,18 @@ class SlurmSyncTestGent(TestCase):
         )
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
+            shlex.split("/usr/bin/sacctmgr -i add user user1 Account=gpr_compute_project1 Cluster=mycluster Partition=part3 DefaultAccount=default_account"),
             shlex.split("/usr/bin/sacctmgr -i add user user4 Account=default_account Cluster=mycluster Partition=part2 DefaultAccount=default_account"),
             shlex.split("/usr/bin/sacctmgr -i add user user6 Account=default_account Cluster=mycluster Partition=part2 DefaultAccount=default_account"),
             shlex.split("/usr/bin/sacctmgr -i add user user3 Account=default_account Cluster=mycluster Partition=part1 DefaultAccount=default_account"),
             shlex.split("/usr/bin/sacctmgr -i add user user3 Account=default_account Cluster=mycluster Partition=part3 DefaultAccount=default_account"),
             shlex.split("/usr/bin/sacctmgr -i add user user5 Account=default_account Cluster=mycluster Partition=part2 DefaultAccount=default_account"),
-            shlex.split("/usr/bin/sacctmgr -i add user user4 Account=gpr_compute_project2 Cluster=mycluster Partition=part2"),
-            shlex.split("/usr/bin/sacctmgr -i add user user6 Account=gpr_compute_project2 Cluster=mycluster Partition=part2"),
-            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=gpr_compute_project1 Cluster=mycluster Partition=part1"),
-            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=gpr_compute_project1 Cluster=mycluster Partition=part3"),
-            shlex.split("/usr/bin/sacctmgr -i add user user5 Account=gpr_compute_project2 Cluster=mycluster Partition=part2"),
-            shlex.split("/usr/bin/sacctmgr -i remove user Name=user3 Account=gpr_compute_project2 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i add user user4 Account=gpr_compute_project2 Cluster=mycluster Partition=part2 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user6 Account=gpr_compute_project2 Cluster=mycluster Partition=part2 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=gpr_compute_project1 Cluster=mycluster Partition=part1 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=gpr_compute_project1 Cluster=mycluster Partition=part3 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user5 Account=gpr_compute_project2 Cluster=mycluster Partition=part2 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user3 Account=gpr_compute_project2 Cluster=mycluster Partition=part2"),
             shlex.split("/usr/bin/sacctmgr -i remove user Name=user5 Account=gpr_compute_project2 Cluster=mycluster Partition=part1"),
             shlex.split("/usr/bin/sacctmgr -i remove user Name=user4 Account=gpr_compute_project1 Cluster=mycluster Partition=part2"),
         ]]))
