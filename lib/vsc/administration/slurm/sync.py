@@ -302,6 +302,7 @@ def slurm_project_users_accounts(
             user=user,
             account=project_name,
             cluster=cluster,
+            default_account=default_account,
             partition=project_partition) for (user, project_name, project_partition) in new_users
         ])
 
