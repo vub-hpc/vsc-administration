@@ -41,7 +41,7 @@ if sys.version_info > (3, 6) and sys.version_info < (3, 7):
     ])
 
 PACKAGE = {
-    'version': '4.2.0',
+    'version': '4.5.0',
     'author': [ag, jt],
     'maintainer': [ag, jt],
     'tests_require': ['mock'],

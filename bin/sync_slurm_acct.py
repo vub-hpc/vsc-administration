@@ -149,8 +149,6 @@ def main():
             logging.info("Executing %d commands", len(sacctmgr_commands))
             execute_commands(sacctmgr_commands)
 
-        # reset to go on with the remainder of the commands
-        sacctmgr_commands = []
 
         # safety to avoid emptying the cluster due to some error upstream
         if not opts.options.force and len(job_cancel_commands) > MAX_USERS_JOB_CANCEL:
@@ -160,7 +158,10 @@ def main():
                 logging.debug("%s", jc)
             raise SyncSanityError("Would cancel jobs for %d users" % len(job_cancel_commands))
 
-        sacctmgr_commands += [c for cl in job_cancel_commands.values() for c in cl]
+        scancel_commands = [c for cl in job_cancel_commands.values() for c in cl]
+
+        # reset to go on with the remainder of the commands
+        sacctmgr_commands = []
 
         # removing users may fail, so should be done last
         sacctmgr_commands += association_remove_commands
@@ -170,6 +171,7 @@ def main():
             print("\n".join([" ".join(c) for c in sacctmgr_commands]))
         else:
             logging.info("Executing %d commands", len(sacctmgr_commands))
+            execute_commands(scancel_commands, allow_failure=True)
             execute_commands(sacctmgr_commands)
 
         if not opts.options.dry_run:
