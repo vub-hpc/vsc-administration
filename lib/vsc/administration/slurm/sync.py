@@ -40,7 +40,7 @@ class SCommandException(Exception):
     pass
 
 
-def execute_commands(commands):
+def execute_commands(commands, allow_failure=False):
     """Run the specified commands"""
 
     for command in commands:
@@ -48,7 +48,7 @@ def execute_commands(commands):
 
         # if one fails, we simply fail the script and should get notified
         (ec, _) = RunNoShell.run(command)
-        if ec != 0:
+        if ec != 0 and not allow_failure:
             raise SCommandException("Command failed: {0}".format(command))
 
 
@@ -117,7 +117,7 @@ def slurm_project_qos(projects, slurm_qos_info, clusters, protected_qos, qos_cle
             if qos_name not in cluster_qos_names:
                 commands.append(create_add_qos_command(qos_name))
             commands.append(create_modify_qos_command(qos_name, {
-                "GRPTRESMins": "billing={cpuminutes},cpu={cpuminutes},gres/gpu={gpuminutes}".format(
+                "GRPTRESMins": "billing={cpuminutes},gres/gpu={gpuminutes}".format(
                     cpuminutes=60*int(project.cpu_hours)
                         + TIER1_GPU_TO_CPU_HOURS_RATE * 60 * int(project.gpu_hours),
                     gpuminutes=max(1, 60*int(project.gpu_hours)))
@@ -225,7 +225,8 @@ def slurm_project_users_accounts(
 
     - If the user does not exist on the system:
         - a new association in the default account is created. The associated QoS does not allow jobs.
-        - a new association in the project account is created.
+        - a new association in the project account is created in combination with the allowed partitions
+          if any are specified
 
     - For users who left the project:
         - The user's association in the project is removed.
@@ -236,29 +237,74 @@ def slurm_project_users_accounts(
 
     for cluster in clusters:
         cluster_users_acct = [
-            (user.User, user.Account) for user in slurm_user_info if user and user.Cluster == cluster
+            (user.User, user.Account, user.Partition) for user in slurm_user_info if user and user.Cluster == cluster
         ]
 
-        protected_users = [u for (u, a) in cluster_users_acct if a in protected_accounts]
+        protected_users = [u for (u, a, _) in cluster_users_acct if a in protected_accounts]
 
         new_users = set()
         remove_project_users = set()
+        obsolete_slurm_project_users = set()
         all_project_users = set()
 
-        for (members, project_name) in project_members:
+        for (members, project_name, project_partitions) in project_members:
 
             # these are the current Slurm users for this project
-            slurm_project_users = set([user for (user, acct) in cluster_users_acct if acct == project_name])
-            all_project_users |= slurm_project_users
+            slurm_project_users = set([
+                (user, part) for (user, acct, part) in cluster_users_acct
+                if acct == project_name and part in project_partitions
+            ])
+            obsolete_slurm_project_users |= set([
+                (user, acct, part) for (user, acct, part) in cluster_users_acct
+                if acct == project_name and part not in project_partitions
+            ])
+            all_project_users |= set([u for (u, _) in slurm_project_users])
 
             # these users are not yet in the Slurm DBD for this project
-            new_users |= set([(user, project_name) for user in (members & active_accounts) - slurm_project_users])
+            new_users |= set([
+                (user, project_name, part)
+                for (user, part) in
+                set([(u, p) for u in (members & active_accounts) for p in project_partitions]) - slurm_project_users
+            ])
 
             # these are the Slurm users that should no longer be associated with the project
-            remove_project_users |= set([(user, project_name) for user in slurm_project_users - members])
+            remove_project_users |= set([
+                (user, project_name, part) for (user, acct, part) in cluster_users_acct
+                if acct == project_name and (user not in members or part not in project_partitions)
+            ])
 
-        logging.info("%d new users", len(new_users))
-        logging.info("%d removed project users", len(remove_project_users))
+            logging.debug("%d new users", len(new_users))
+            logging.debug("%d removed project users", len(remove_project_users))
+            logging.debug("===============================================================")
+            logging.debug(f"Project {project_name} members: {members}")
+            logging.debug(f"Project {project_name} project_partitions: {project_partitions}")
+            logging.debug(f"Project {project_name} slurm_project_users: {slurm_project_users}")
+            logging.debug(f"Project {project_name} obsolete_slurm_project_users: {obsolete_slurm_project_users}")
+            logging.debug(f"Project {project_name} new_users: {new_users}")
+            logging.debug(f"Project {project_name} removed users: {remove_project_users}")
+            logging.debug("===============================================================")
+
+        cluster_users_with_default_account = set([u for (u, a, _) in cluster_users_acct if a == default_account])
+
+        # create associations in the default account for users that do not already have one
+        commands.extend([create_add_user_command(
+            user=user,
+            account=default_account,
+            default_account=default_account,
+            cluster=cluster,
+            partition=project_partition)
+            for (user, _, project_partition) in new_users
+            if user not in cluster_users_with_default_account
+        ])
+
+        # create associations for the actual project's new users
+        commands.extend([create_add_user_command(
+            user=user,
+            account=project_name,
+            default_account=default_account,
+            cluster=cluster,
+            partition=project_partition) for (user, project_name, project_partition) in new_users
+        ])
 
         # these are the users not in any project, we should decide if we want any of those
         remove_slurm_users = set([u[0] for u in cluster_users_acct if u not in protected_users]) - all_project_users
@@ -268,26 +314,16 @@ def slurm_project_users_accounts(
                 "Number of slurm users not in projects: %d > 0: %s", len(remove_slurm_users), remove_slurm_users
             )
 
-        # create associations in the default account for users that do not already have one
-        cluster_users_with_default_account = set([u for (u, a) in cluster_users_acct if a == default_account])
-        commands.extend([create_add_user_command(
-            user=user,
-            account=default_account,
-            default_account=default_account,
-            cluster=cluster) for (user, _) in new_users if user not in cluster_users_with_default_account
-        ])
 
-        # create associations for the actual project's new users
-        commands.extend([create_add_user_command(
-            user=user,
-            account=project_name,
-            cluster=cluster) for (user, project_name) in new_users
-        ])
-
-        # kick out users no longer in the project
+        # kick out users no longer in the project or whose partition changed
         commands.extend([
-            create_remove_user_account_command(user=user, account=project_name, cluster=cluster)
-            for (user, project_name) in remove_project_users
+            create_remove_user_account_command(user=user, account=project_name, cluster=cluster, partition=partition)
+            for (user, project_name, partition) in remove_project_users
+        ])
+
+        commands.extend([
+            create_remove_user_account_command(user=user, account=project_name, cluster=cluster, partition=partition)
+            for (user, project_name, partition) in obsolete_slurm_project_users
         ])
 
         # remove associations in the default account for users no longer in any project
@@ -317,15 +353,22 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
         for m in members:
             reverse_vo_mapping[m] = (vo.vsc_id, vo.institute['name'])
 
+    remove_users = set()  # we do not make a disctinction between clusters
+
     for cluster in clusters:
         cluster_users_acct = [
             (user.User, user.Def_Acct) for user in slurm_user_info if user and user.Cluster == cluster
         ]
         cluster_users = set([u[0] for u in cluster_users_acct])
 
-        # these are the users that need to be removed as they are no longer an active user in any
+        # these are the users that need to be completely removed as they are no longer an active user in any
         # (including the institute default) VO
-        remove_users = cluster_users - active_vo_members
+        remove_users_cluster = cluster_users - active_vo_members
+        remove_users |= remove_users_cluster
+
+        # Removed users should no longer have running jobs.
+        for user in remove_users_cluster:
+            job_cancel_commands[user].append(create_remove_user_jobs_command(user=user, cluster=cluster))
 
         new_users = set()
         changed_users = set()
@@ -371,14 +414,6 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
             default_account=vo_id) for (user, vo_id, _) in new_users
         ])
 
-        for user in remove_users:
-            job_cancel_commands[user].append(create_remove_user_jobs_command(user=user, cluster=cluster))
-
-        # Remove users from the clusters (in all accounts)
-        association_remove_commands.extend([
-            create_remove_user_command(user=user, cluster=cluster) for user in remove_users
-        ])
-
         for (user, current_vo_id, (new_vo_id, _)) in moved_users:
             [add, default_account, remove_jobs, remove_association_user] = create_change_user_command(
                 user=user,
@@ -389,5 +424,10 @@ def slurm_user_accounts(vo_members, active_accounts, slurm_user_info, clusters, 
             commands.extend([add, default_account])
             association_remove_commands.append(remove_association_user)
             job_cancel_commands[user].append(remove_jobs)
+
+    association_remove_commands.extend([
+        create_remove_user_command(user=user) for user in remove_users
+    ])
+
 
     return (job_cancel_commands, commands, association_remove_commands)

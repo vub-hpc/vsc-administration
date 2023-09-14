@@ -123,28 +123,28 @@ class SlurmSyncTestGent(TestCase):
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
             shlex.split("/usr/bin/sacctmgr -i add qos Name=mycluster-gpr_compute_project1"),
             shlex.split("/usr/bin/sacctmgr -i add qos Name=mycluster-gpr_compute_project2"),
-            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project1 set flags=NoDecay,DenyOnLimit GRPTRESMins=billing=2280,cpu=2280,gres/gpu=180"),
-            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project2 set flags=NoDecay,DenyOnLimit GRPTRESMins=billing=300,cpu=300,gres/gpu=1"),
-            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project3 set flags=NoDecay,DenyOnLimit GRPTRESMins=billing=240,cpu=240,gres/gpu=1"),
+            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project1 set flags=NoDecay,DenyOnLimit GRPTRESMins=billing=2280,gres/gpu=180"),
+            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project2 set flags=NoDecay,DenyOnLimit GRPTRESMins=billing=300,gres/gpu=1"),
+            shlex.split("/usr/bin/sacctmgr -i modify qos mycluster-gpr_compute_project3 set flags=NoDecay,DenyOnLimit GRPTRESMins=billing=240,gres/gpu=1"),
             shlex.split("/usr/bin/sacctmgr -i remove qos where Name=mycluster-gpr_compute_project4"),
         ]]))
 
 
     def test_slurm_project_users_accounts(self):
         project_members = [
-            (set(["user1", "user2", "user3"]), "gpr_compute_project1"),
-            (set(["user4", "user5", "user6"]), "gpr_compute_project2"),
+            (set(["user1", "user2", "user3"]), "gpr_compute_project1", ["part1", "part3"]),
+            (set(["user4", "user5", "user6"]), "gpr_compute_project2", ["part2"]),
         ]
 
         active_accounts = set(["user1", "user3", "user4", "user5", "user6", "user7"])
         slurm_user_info = [
-            SlurmUser(User='user1', Def_Acct='default_account', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmUser(User='user1', Def_Acct='default_account', Admin='None', Cluster='mycluster', Account='default_account', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmUser(User='user2', Def_Acct='gpr_compute_project1', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmUser(User='user2', Def_Acct='default_account', Admin='None', Cluster='mycluster', Account='default_account', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmUser(User='user4', Def_Acct='gpr_compute_project1', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmUser(User='user3', Def_Acct='gpr_compute_project2', Admin='None', Cluster='mycluster', Account='gpr_compute_project2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
-            SlurmUser(User='user5', Def_Acct='gpr_compute_project2', Admin='None', Cluster='mycluster', Account='gpr_compute_project2', Partition='', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user1', Def_Acct='default_account', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='part1', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user1', Def_Acct='default_account', Admin='None', Cluster='mycluster', Account='default_account', Partition='part1', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user2', Def_Acct='gpr_compute_project1', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='part1', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user2', Def_Acct='default_account', Admin='None', Cluster='mycluster', Account='default_account', Partition='part1', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user4', Def_Acct='gpr_compute_project1', Admin='None', Cluster='mycluster', Account='gpr_compute_project1', Partition='part2', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user3', Def_Acct='gpr_compute_project2', Admin='None', Cluster='mycluster', Account='gpr_compute_project2', Partition='part2', Share='2', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
+            SlurmUser(User='user5', Def_Acct='gpr_compute_project2', Admin='None', Cluster='mycluster', Account='gpr_compute_project2', Partition='part1', Share='1', MaxJobs='', MaxNodes='', MaxCPUs='', MaxSubmit='', MaxWall='', MaxCPUMins='', QOS='normal', Def_QOS=''),
         ]
 
         commands = slurm_project_users_accounts(
@@ -153,18 +153,24 @@ class SlurmSyncTestGent(TestCase):
             slurm_user_info,
             ["mycluster"],
             default_account="default_account",
-            protected_accounts=("protected_account1", "protected_acocunt2")
+            protected_accounts=("protected_account1", "protected_account2")
         )
 
         self.assertEqual(set([tuple(x) for x in commands]), set([tuple(x) for x in [
-            shlex.split("/usr/bin/sacctmgr -i add user user4 Account=default_account Cluster=mycluster DefaultAccount=default_account"),
-            shlex.split("/usr/bin/sacctmgr -i add user user6 Account=default_account Cluster=mycluster DefaultAccount=default_account"),
-            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=default_account Cluster=mycluster DefaultAccount=default_account"),
-            shlex.split("/usr/bin/sacctmgr -i add user user4 Account=gpr_compute_project2 Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i add user user6 Account=gpr_compute_project2 Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=gpr_compute_project1 Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i remove user Name=user3 Account=gpr_compute_project2 Cluster=mycluster"),
-            shlex.split("/usr/bin/sacctmgr -i remove user Name=user4 Account=gpr_compute_project1 Cluster=mycluster"),
+            shlex.split("/usr/bin/sacctmgr -i add user user1 Account=gpr_compute_project1 Cluster=mycluster Partition=part3 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user4 Account=default_account Cluster=mycluster Partition=part2 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user6 Account=default_account Cluster=mycluster Partition=part2 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=default_account Cluster=mycluster Partition=part1 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=default_account Cluster=mycluster Partition=part3 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user5 Account=default_account Cluster=mycluster Partition=part2 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user4 Account=gpr_compute_project2 Cluster=mycluster Partition=part2 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user6 Account=gpr_compute_project2 Cluster=mycluster Partition=part2 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=gpr_compute_project1 Cluster=mycluster Partition=part1 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user3 Account=gpr_compute_project1 Cluster=mycluster Partition=part3 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i add user user5 Account=gpr_compute_project2 Cluster=mycluster Partition=part2 DefaultAccount=default_account"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user3 Account=gpr_compute_project2 Cluster=mycluster Partition=part2"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user5 Account=gpr_compute_project2 Cluster=mycluster Partition=part1"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user4 Account=gpr_compute_project1 Cluster=mycluster Partition=part2"),
         ]]))
 
 
@@ -217,15 +223,15 @@ class SlurmSyncTestGent(TestCase):
             shlex.split("/usr/bin/sacctmgr -i modify user Name=user4 Cluster=banette set DefaultAccount=vo2"),
         ]]))
         self.assertEqual(set([tuple(x) for x in remove_user_commands]), set([tuple(x) for x in [
-            shlex.split("/usr/bin/sacctmgr -i remove user Name=user2 Cluster=banette"),
+            shlex.split("/usr/bin/sacctmgr -i remove user Name=user2"),
             shlex.split("/usr/bin/sacctmgr -i remove user Name=user3 Account=vo2 Cluster=banette"),
             shlex.split("/usr/bin/sacctmgr -i remove user Name=user4 Account=vo1 Cluster=banette"),
         ]]))
 
         self.assertEqual(set([tuple(x) for c in job_cancel_commands.values() for x in c]), set([tuple(x) for x in [
-            shlex.split("/usr/bin/scancel --cluster=banette --user=user2"),
-            shlex.split("/usr/bin/scancel --cluster=banette --user=user3 --account=vo2"),
-            shlex.split("/usr/bin/scancel --cluster=banette --user=user4 --account=vo1"),
+            shlex.split("/usr/bin/scancel --user=user2 --clusters=banette"),
+            shlex.split("/usr/bin/scancel --user=user3 --clusters=banette --account=vo2"),
+            shlex.split("/usr/bin/scancel --user=user4 --clusters=banette --account=vo1"),
         ]]))
 
 
